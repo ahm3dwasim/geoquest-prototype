@@ -1,0 +1,1648 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>GeoQuest — Interactive Prototype</title>
+<link rel="stylesheet" href="vendor/maplibre-gl.css">
+<script src="vendor/maplibre-gl.js"></script>
+<style>
+  :root{
+    --bg:#e8efed; --app:#f7faf9; --card:#ffffff; --card2:#eef4f2;
+    --ink:#10201d; --soft:#4a5b55; --faint:#7c8d86; --line:#d7e0dc; --line2:#c3d0cb;
+    --teal:#0d766b; --teal-d:#0b5d54; --teal-soft:#d6e9e5;
+    --gold:#b7841c; --gold-soft:#f6ead0; --gold-ink:#7d5a10;
+    --good:#1f7a4d; --good-soft:#dbeee3; --bad:#b23b3b; --bad-soft:#f3dede;
+    --shadow:0 1px 2px rgba(16,32,29,.05),0 10px 30px rgba(16,32,29,.10);
+    --shadow-sm:0 1px 2px rgba(16,32,29,.06),0 3px 10px rgba(16,32,29,.06);
+    --r:16px;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --bg:#080f0e; --app:#0e1917; --card:#14211e; --card2:#1a2824;
+    --ink:#e7efec; --soft:#a1b3ac; --faint:#71827b; --line:#233330; --line2:#2e433d;
+    --teal:#37b7a5; --teal-d:#57cbbb; --teal-soft:#123029;
+    --gold:#d8aa3c; --gold-soft:#2c2512; --gold-ink:#e6bd54;
+    --good:#48c07d; --good-soft:#13291d; --bad:#e77; --bad-soft:#2c1717;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 40px rgba(0,0,0,.5);
+    --shadow-sm:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.35);
+  }}
+  :root[data-theme="light"]{
+    --bg:#e8efed; --app:#f7faf9; --card:#ffffff; --card2:#eef4f2;
+    --ink:#10201d; --soft:#4a5b55; --faint:#7c8d86; --line:#d7e0dc; --line2:#c3d0cb;
+    --teal:#0d766b; --teal-d:#0b5d54; --teal-soft:#d6e9e5;
+    --gold:#b7841c; --gold-soft:#f6ead0; --gold-ink:#7d5a10;
+    --good:#1f7a4d; --good-soft:#dbeee3; --bad:#b23b3b; --bad-soft:#f3dede;
+    --shadow:0 1px 2px rgba(16,32,29,.05),0 10px 30px rgba(16,32,29,.10);
+    --shadow-sm:0 1px 2px rgba(16,32,29,.06),0 3px 10px rgba(16,32,29,.06);
+  }
+  :root[data-theme="dark"]{
+    --bg:#080f0e; --app:#0e1917; --card:#14211e; --card2:#1a2824;
+    --ink:#e7efec; --soft:#a1b3ac; --faint:#71827b; --line:#233330; --line2:#2e433d;
+    --teal:#37b7a5; --teal-d:#57cbbb; --teal-soft:#123029;
+    --gold:#d8aa3c; --gold-soft:#2c2512; --gold-ink:#e6bd54;
+    --good:#48c07d; --good-soft:#13291d; --bad:#e77; --bad-soft:#2c1717;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 14px 40px rgba(0,0,0,.5);
+    --shadow-sm:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased; line-height:1.5;
+    min-height:100vh;
+  }
+  .stage{max-width:1180px; margin:0 auto; padding:20px 16px 40px;
+    display:grid; grid-template-columns:1fr; gap:22px; align-items:start;}
+  @media(min-width:900px){ .stage{grid-template-columns:300px 1fr; padding-top:34px;} }
+
+  /* ---- side / intro ---- */
+  .intro .brand{display:flex; align-items:center; gap:10px; font-weight:800; font-size:1.15rem; letter-spacing:-.01em;}
+  .intro .brand .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(140deg,var(--teal),var(--teal-d));display:grid;place-items:center;color:#fff;font-size:15px;box-shadow:var(--shadow-sm)}
+  .intro .tag{font-family:ui-monospace,Menlo,monospace;font-size:.68rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin:12px 0 0}
+  .intro p{font-size:.9rem;color:var(--soft);max-width:40ch}
+  .roleswitch{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+  .roleswitch button{display:flex;gap:12px;align-items:center;text-align:left;padding:12px 14px;border-radius:13px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .12s,border-color .12s}
+  .roleswitch button:hover{transform:translateY(-1px)}
+  .roleswitch button[aria-pressed="true"]{border-color:var(--teal);box-shadow:0 0 0 2px var(--teal-soft),var(--shadow-sm)}
+  .roleswitch .ic{width:34px;height:34px;border-radius:10px;background:var(--teal-soft);color:var(--teal-d);display:grid;place-items:center;font-size:17px;flex:none}
+  .roleswitch .lab{font-weight:700;font-size:.92rem}
+  .roleswitch .sub{font-size:.74rem;color:var(--faint)}
+  .side-note{font-size:.72rem;color:var(--faint);border-left:2px solid var(--gold);padding-left:10px;margin-top:6px}
+  .themebtn{margin-top:4px;align-self:flex-start;font-family:ui-monospace,monospace;font-size:.72rem;border:1px solid var(--line);background:var(--card);color:var(--soft);padding:7px 12px;border-radius:999px;cursor:pointer}
+
+  /* ---- phone ---- */
+  .phonewrap{display:flex;justify-content:center}
+  .phone{
+    width:100%; max-width:392px; height:812px; max-height:calc(100vh - 60px);
+    background:var(--app); border-radius:38px; position:relative; overflow:hidden;
+    border:1px solid var(--line2); box-shadow:var(--shadow);
+    display:flex; flex-direction:column;
+  }
+  @media(max-width:430px){ .phone{height:calc(100vh - 24px);border-radius:26px} .stage{padding:12px} }
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:130px;height:26px;background:var(--line2);opacity:.4;border-radius:0 0 14px 14px;z-index:40;pointer-events:none}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;flex:none}
+  .topbar .b{display:flex;align-items:center;gap:8px;font-weight:800}
+  .topbar .b .mk{width:24px;height:24px;border-radius:7px;background:linear-gradient(140deg,var(--teal),var(--teal-d));display:grid;place-items:center;color:#fff;font-size:12px}
+  .topbar .stat{display:flex;gap:8px;align-items:center;font-family:ui-monospace,monospace;font-size:.74rem}
+  .stat .p{display:flex;gap:4px;align-items:center;background:var(--gold-soft);color:var(--gold-ink);padding:4px 9px;border-radius:999px;font-weight:700}
+  .stat .s{display:flex;gap:4px;align-items:center;background:var(--teal-soft);color:var(--teal-d);padding:4px 9px;border-radius:999px;font-weight:700}
+
+  .screen{flex:1;overflow-y:auto;overflow-x:hidden;padding:6px 16px 20px;-webkit-overflow-scrolling:touch}
+  .screen::-webkit-scrollbar{width:0}
+  .rolehint{font-family:ui-monospace,monospace;font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:2px 0 12px}
+
+  h2.sc{font-size:1.3rem;margin:6px 0 2px;letter-spacing:-.02em}
+  .lede{font-size:.85rem;color:var(--soft);margin:0 0 14px}
+
+  /* ===== Snapchat-style map ===== */
+  .smap{position:relative;height:430px;border-radius:24px;overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow);isolation:isolate;
+    background:radial-gradient(150% 120% at 28% 8%, color-mix(in oklab,var(--teal) 26%, var(--app)), color-mix(in oklab,var(--teal) 9%, var(--app)) 72%)}
+  .layer{position:absolute;inset:0}
+  .layer-local,.layer-globe{transition:opacity .45s ease}
+  .smap[data-view="globe"] .layer-local{opacity:0;pointer-events:none}
+  .smap[data-view="local"] .layer-globe{opacity:0;pointer-events:none}
+  .layer-globe{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:radial-gradient(circle at 50% 32%, #072320, #030d0c 82%)}
+  .landsvg{position:absolute;inset:0;width:100%;height:100%}
+  .land-fill{fill:color-mix(in oklab,var(--gold) 24%, var(--app));stroke:color-mix(in oklab,var(--gold) 48%, transparent);stroke-width:1.3}
+  .road{stroke:color-mix(in oklab,var(--app) 66%, var(--faint));stroke-width:2;fill:none;opacity:.7;stroke-linecap:round}
+  .road.hw{stroke:color-mix(in oklab,var(--gold) 45%, var(--app));stroke-width:3.2}
+  .heat{position:absolute;width:150px;height:150px;transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;filter:blur(3px);
+    background:radial-gradient(circle, color-mix(in oklab,var(--gold) 55%, transparent), transparent 68%)}
+  @media(prefers-reduced-motion:no-preference){.heat{animation:breathe 4.5s ease-in-out infinite}@keyframes breathe{0%,100%{opacity:.5;transform:translate(-50%,-50%) scale(1)}50%{opacity:.8;transform:translate(-50%,-50%) scale(1.14)}}}
+  .plabel{position:absolute;transform:translate(-50%,-50%);font-family:ui-monospace,Menlo,monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:color-mix(in oklab,var(--ink) 60%, var(--app));font-weight:700;pointer-events:none;text-shadow:0 1px 3px var(--app)}
+  .road.st{stroke-width:1.2;opacity:.45}
+  .coast{fill:none;stroke:color-mix(in oklab,var(--teal) 45%, var(--app));stroke-width:1.2;opacity:.55;stroke-dasharray:2 4}
+  .poi{position:absolute;transform:translate(-50%,-50%);z-index:4;width:23px;height:23px;border-radius:8px;background:color-mix(in oklab,var(--card) 88%,transparent);border:1px solid var(--line);display:grid;place-items:center;font-size:12px;box-shadow:var(--shadow-sm);pointer-events:none}
+  .poi .pl{position:absolute;left:27px;white-space:nowrap;font-size:.5rem;font-weight:700;color:var(--soft);font-family:ui-monospace,Menlo,monospace;text-shadow:0 1px 2px var(--app),0 0 3px var(--app)}
+  .smap.full{height:100%;flex:1;min-height:0;border-radius:0;border:none;box-shadow:none}
+  .mapclose{position:absolute;top:12px;left:12px;z-index:12;display:flex;align-items:center;gap:6px;font-size:.78rem;font-weight:700;color:var(--ink);background:color-mix(in oklab,var(--card) 84%,transparent);backdrop-filter:blur(6px);border:1px solid var(--line);padding:8px 13px;border-radius:999px;box-shadow:var(--shadow-sm);cursor:pointer}
+  .mapclose:active{transform:scale(.96)}
+
+  .hpin{position:absolute;transform:translate(-50%,-100%);cursor:pointer;z-index:6;display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 6px 8px rgba(0,0,0,.28))}
+  .hpin .bubble{width:44px;height:44px;border-radius:50% 50% 50% 5px;background:var(--gold);transform:rotate(45deg);display:grid;place-items:center;border:2.5px solid var(--card);position:relative}
+  .hpin .bubble span{transform:rotate(-45deg);font-size:19px}
+  .hpin.sp .bubble{background:var(--teal)}
+  .hpin::after{content:"";position:absolute;top:36px;width:36px;height:36px;border-radius:50%;z-index:-1;background:radial-gradient(circle,color-mix(in oklab,var(--gold) 45%,transparent),transparent 70%)}
+  .hpin.sp::after{background:radial-gradient(circle,color-mix(in oklab,var(--teal) 45%,transparent),transparent 70%)}
+  .hpin .plab{position:absolute;top:-15px;font-size:.55rem;background:var(--card);border:1px solid var(--line);padding:1px 6px;border-radius:6px;color:var(--soft);white-space:nowrap;font-weight:700;font-family:ui-monospace,Menlo,monospace}
+  @media(prefers-reduced-motion:no-preference){.hpin{animation:bob 3s ease-in-out infinite}.hpin:nth-child(odd){animation-delay:.7s}@keyframes bob{0%,100%{transform:translate(-50%,-100%)}50%{transform:translate(-50%,-107%)}}}
+
+  .me-av{position:absolute;transform:translate(-50%,-50%);z-index:8;display:flex;flex-direction:column;align-items:center}
+  .me-av .ring{width:46px;height:46px;border-radius:50%;background:linear-gradient(140deg,var(--teal),var(--teal-d));display:grid;place-items:center;border:3px solid var(--card);box-shadow:0 4px 12px rgba(0,0,0,.3);font-size:22px}
+  .me-av .nb{position:absolute;top:-15px;background:var(--ink);color:var(--app);font-size:.56rem;font-weight:800;padding:2px 7px;border-radius:6px;white-space:nowrap;letter-spacing:.02em}
+  .me-av::before{content:"";position:absolute;top:23px;left:50%;width:70px;height:70px;transform:translate(-50%,-50%);border-radius:50%;z-index:-1;background:radial-gradient(circle,color-mix(in oklab,var(--teal) 42%,transparent),transparent 70%)}
+  @media(prefers-reduced-motion:no-preference){.me-av::before{animation:halo 2.8s ease-out infinite}@keyframes halo{0%{opacity:.7;transform:translate(-50%,-50%) scale(.6)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.6)}}}
+  .fr-av{position:absolute;transform:translate(-50%,-50%);z-index:7;width:34px;height:34px;border-radius:50%;background:var(--card2);display:grid;place-items:center;border:2.5px solid var(--card);box-shadow:0 3px 8px rgba(0,0,0,.25);font-size:16px}
+
+  .mapctrl{position:absolute;top:12px;right:12px;z-index:10;display:flex;flex-direction:column;gap:8px}
+  .mapctrl button{width:38px;height:38px;border-radius:12px;border:1px solid var(--line);background:color-mix(in oklab,var(--card) 80%, transparent);backdrop-filter:blur(6px);color:var(--ink);cursor:pointer;font-size:16px;box-shadow:var(--shadow-sm)}
+  .mapctrl button:active{transform:scale(.94)}
+  .mapbadge{position:absolute;left:12px;bottom:12px;z-index:10;display:flex;align-items:center;gap:6px;font-size:.68rem;font-weight:700;color:var(--ink);background:color-mix(in oklab,var(--card) 80%, transparent);backdrop-filter:blur(6px);border:1px solid var(--line);padding:5px 10px;border-radius:999px;box-shadow:var(--shadow-sm)}
+  .mapbadge .lv{width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 0 3px var(--good-soft)}
+
+  /* globe */
+  .globe-wrap{position:relative;display:grid;place-items:center}
+  .globe-wrap::before{content:"";position:absolute;width:290px;height:290px;border-radius:50%;background:radial-gradient(circle,color-mix(in oklab,var(--teal) 28%,transparent),transparent 66%)}
+  .globe{position:relative;width:220px;height:220px;border-radius:50%;overflow:hidden;
+    background:radial-gradient(circle at 34% 28%, color-mix(in oklab,var(--teal) 48%, #06322e), #041b18 72%, #02110f 100%);
+    box-shadow:inset -16px -16px 38px rgba(0,0,0,.55), 0 18px 44px rgba(0,0,0,.5), 0 0 0 1px color-mix(in oklab,var(--teal) 30%,transparent)}
+  .globe .dots{position:absolute;inset:-25%;background-image:radial-gradient(color-mix(in oklab,var(--teal-d) 85%, #fff) 1px, transparent 1.5px);background-size:12px 12px;opacity:.45;mix-blend-mode:screen}
+  @media(prefers-reduced-motion:no-preference){.globe .dots{animation:spin 22s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}}
+  .globe .sheen{position:absolute;inset:0;background:radial-gradient(circle at 32% 26%, rgba(255,255,255,.26), transparent 44%)}
+  .globe .bh{position:absolute;left:56%;top:47%;transform:translate(-50%,-50%);z-index:3;display:flex;flex-direction:column;align-items:center}
+  .globe .bh .gd{width:12px;height:12px;border-radius:50%;background:var(--gold);border:2px solid #fff}
+  @media(prefers-reduced-motion:no-preference){.globe .bh .gd{animation:beat 1.8s ease-in-out infinite}@keyframes beat{0%,100%{box-shadow:0 0 0 3px color-mix(in oklab,var(--gold) 42%,transparent)}50%{box-shadow:0 0 0 9px color-mix(in oklab,var(--gold) 10%,transparent)}}}
+  .globe .bh .gt{margin-top:5px;font-size:.58rem;font-weight:800;color:#fff;background:rgba(0,0,0,.4);padding:1px 7px;border-radius:6px;letter-spacing:.06em}
+  .globe-cap{color:#cdeae6;font-size:.82rem;text-align:center;max-width:26ch}
+  .globe-cap b{color:#fff}
+
+  /* nearest hunt */
+  .nearest{margin-top:16px;background:var(--card);border:1px solid var(--teal);box-shadow:0 0 0 3px var(--teal-soft),var(--shadow-sm);border-radius:16px;padding:14px}
+  .nearest .k{font-family:ui-monospace,Menlo,monospace;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--teal-d);font-weight:700}
+  .nearest .rowx{display:flex;gap:12px;align-items:center;margin-top:8px}
+  .nearest .ic{width:48px;height:48px;border-radius:13px;flex:none;display:grid;place-items:center;font-size:23px;background:var(--gold-soft)}
+  .nearest.sp .ic{background:var(--teal-soft)}
+  .nearest .t{font-weight:800;font-size:1rem;letter-spacing:-.01em}
+  .nearest .sub{font-size:.78rem;color:var(--soft)}
+  .nearest .dist{font-family:ui-monospace,Menlo,monospace;font-weight:800;color:var(--teal-d);font-size:.92rem;white-space:nowrap}
+
+  /* browse list */
+  .listhead{display:flex;align-items:center;justify-content:space-between;margin:20px 0 10px}
+  .listhead h3{margin:0;font-size:1.05rem}
+  .listhead .cnt{font-family:ui-monospace,Menlo,monospace;font-size:.7rem;color:var(--faint);background:var(--card2);padding:3px 9px;border-radius:999px}
+  .seg{display:flex;gap:6px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:12px}
+  .seg button{flex:1;border:none;background:none;cursor:pointer;font-size:.78rem;font-weight:700;color:var(--soft);padding:7px 4px;border-radius:9px}
+  .seg button[aria-pressed="true"]{background:var(--card);color:var(--teal-d);box-shadow:var(--shadow-sm)}
+  .droplist{display:flex;flex-direction:column;gap:10px}
+  .droprow{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .12s}
+  .droprow:hover{transform:translateY(-1px)}
+  .droprow .ic{width:44px;height:44px;border-radius:12px;flex:none;display:grid;place-items:center;font-size:20px;background:var(--gold-soft)}
+  .droprow.sp .ic{background:var(--teal-soft)}
+  .droprow .m{flex:1;min-width:0}
+  .droprow .t{font-weight:700;font-size:.92rem;display:flex;align-items:center;gap:6px}
+  .droprow .d{font-size:.74rem;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+  .droprow .rt{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}
+  .droprow .rt .dist{font-family:ui-monospace,Menlo,monospace;font-size:.72rem;font-weight:700;color:var(--teal-d)}
+  .tag{display:inline-flex;align-items:center;gap:4px;font-family:ui-monospace,monospace;font-size:.62rem;padding:2px 7px;border-radius:999px;font-weight:700;letter-spacing:.02em}
+  .tag.diff{background:var(--gold-soft);color:var(--gold-ink)}
+  .tag.cat{background:var(--teal-soft);color:var(--teal-d)}
+  .tag.sp{background:var(--teal);color:#fff}
+  :root[data-theme="dark"] .tag.sp{color:#08211d}
+  @media (prefers-color-scheme:dark){.tag.sp{color:#08211d}}
+
+  /* generic cards / sections */
+  .block{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow-sm);margin-bottom:14px}
+  .block h3{margin:0 0 4px;font-size:1rem}
+  .block p{margin:0;font-size:.84rem;color:var(--soft)}
+  .row{display:flex;gap:10px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px;text-align:center;box-shadow:var(--shadow-sm)}
+  .kpi .v{font-size:1.4rem;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .kpi .l{font-size:.68rem;color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;border:none;cursor:pointer;
+    background:linear-gradient(135deg,var(--teal),var(--teal-d));color:#fff;font-weight:700;font-size:.94rem;
+    padding:14px 16px;border-radius:14px;box-shadow:var(--shadow-sm);transition:transform .1s,filter .1s}
+  .btn:hover{filter:brightness(1.05)} .btn:active{transform:scale(.98)}
+  .btn.gold{background:linear-gradient(135deg,var(--gold),var(--gold-ink))}
+  .btn.ghost{background:transparent;color:var(--teal-d);border:1px solid var(--line2);box-shadow:none}
+  .btn.sm{width:auto;padding:9px 14px;font-size:.82rem;border-radius:11px}
+
+  /* bottom nav */
+  .nav{flex:none;display:flex;border-top:1px solid var(--line);background:var(--card)}
+  .nav button{flex:1;background:none;border:none;cursor:pointer;padding:9px 0 12px;color:var(--faint);display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.64rem;font-weight:600}
+  .nav button .i{font-size:19px;line-height:1}
+  .nav button[aria-pressed="true"]{color:var(--teal-d)}
+
+  /* overlay */
+  .overlay{position:absolute;inset:0;z-index:60;display:none;flex-direction:column;background:color-mix(in oklab,var(--app) 88%,transparent);backdrop-filter:blur(3px)}
+  .overlay.on{display:flex}
+  .sheet{margin-top:auto;background:var(--card);border-radius:24px 24px 0 0;border-top:1px solid var(--line);padding:20px 18px 22px;box-shadow:0 -10px 40px rgba(0,0,0,.18)}
+  @media(prefers-reduced-motion:no-preference){.overlay.on .sheet{animation:up .28s cubic-bezier(.2,.7,.2,1) both}@keyframes up{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}}
+  .sheet .close{position:absolute;top:12px;right:14px;z-index:5;background:var(--card2);border:1px solid var(--line);color:var(--soft);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:15px}
+  .full{margin:0;height:100%;border-radius:0;display:flex;flex-direction:column}
+
+  /* chest */
+  .chestbox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:24px}
+  .chest{font-size:96px;cursor:pointer;filter:drop-shadow(0 12px 20px rgba(0,0,0,.25))}
+  @media(prefers-reduced-motion:no-preference){.chest{animation:pulse 1.6s ease-in-out infinite}@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}}
+
+  /* lock / puzzle */
+  .lock{flex:1;display:flex;flex-direction:column;padding:18px}
+  .ring{--p:100;position:relative;width:56px;height:56px;flex:none}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .num{position:absolute;inset:0;display:grid;place-items:center;font-weight:800;font-variant-numeric:tabular-nums;font-size:1.05rem}
+  .lockhead{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+  .lockhead .meta{flex:1}
+  .lockhead .q{font-weight:800;font-size:1.02rem;letter-spacing:-.01em}
+  .lockhead .sub{font-size:.72rem;color:var(--faint)}
+  .progress{display:flex;gap:5px;margin-bottom:14px}
+  .progress i{flex:1;height:4px;border-radius:2px;background:var(--line2)}
+  .progress i.done{background:var(--teal)} .progress i.now{background:var(--gold)}
+  .qtext{font-size:1.08rem;font-weight:700;margin:6px 0 14px;line-height:1.35;letter-spacing:-.01em}
+  .opts{display:flex;flex-direction:column;gap:10px}
+  .opt{text-align:left;background:var(--card);border:1.5px solid var(--line);border-radius:13px;padding:14px;cursor:pointer;font-size:.94rem;font-weight:600;color:var(--ink);transition:transform .1s,border-color .1s}
+  .opt:hover{transform:translateY(-1px);border-color:var(--line2)}
+  .opt.right{border-color:var(--good);background:var(--good-soft);color:var(--good)}
+  .opt.wrong{border-color:var(--bad);background:var(--bad-soft);color:var(--bad)}
+  .opt:disabled{cursor:default}
+  .fact{margin-top:14px;background:var(--teal-soft);border-radius:12px;padding:12px 14px;font-size:.82rem;color:var(--teal-d)}
+  .fact b{display:block;font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:3px}
+
+  /* win */
+  .win{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;padding:26px}
+  .win .big{font-size:70px}
+  .win h3{margin:4px 0 0;font-size:1.5rem;letter-spacing:-.02em}
+  .win .reward{background:var(--gold-soft);color:var(--gold-ink);font-weight:800;padding:12px 20px;border-radius:14px;margin:8px 0;font-size:1.1rem}
+  .confetti{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden}
+  .confetti i{position:absolute;top:-12px;width:8px;height:12px;border-radius:2px;opacity:.9}
+  @media(prefers-reduced-motion:no-preference){.confetti i{animation:fall linear forwards}@keyframes fall{to{transform:translateY(900px) rotate(540deg);opacity:0}}}
+
+  /* win card */
+  .wincard{background:linear-gradient(150deg,var(--teal-d),#0a3f3a 90%);color:#eafcf8;border-radius:20px;padding:22px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+  .wincard::after{content:"";position:absolute;right:-30px;top:-30px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.06)}
+  .wincard .wc-k{font-family:ui-monospace,monospace;font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;opacity:.8}
+  .wincard .wc-big{font-size:1.5rem;font-weight:800;margin:6px 0 2px;letter-spacing:-.01em}
+  .wincard .wc-time{font-family:ui-monospace,monospace;font-size:2.2rem;font-weight:800;letter-spacing:-.02em}
+  .wincard .wc-row{display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px;font-size:.8rem;opacity:.9}
+
+  /* trails */
+  .trail{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px;cursor:pointer;box-shadow:var(--shadow-sm)}
+  .trail .ic{width:44px;height:44px;border-radius:12px;flex:none;display:grid;place-items:center;font-size:20px;background:var(--gold-soft)}
+  .trail .m{flex:1}
+  .trail .t{font-weight:700}
+  .bar{height:6px;background:var(--line2);border-radius:3px;margin-top:6px;overflow:hidden}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--teal-d))}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .collect{aspect-ratio:3/4;border-radius:12px;border:1px solid var(--line);display:flex;flex-direction:column;justify-content:flex-end;padding:10px;color:#fff;background:linear-gradient(160deg,#137,#046 90%);box-shadow:var(--shadow-sm);font-size:.78rem;font-weight:700}
+  .collect.locked{background:var(--card2);color:var(--faint);border-style:dashed;align-items:center;justify-content:center;font-size:26px}
+
+  /* forge */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 12px}
+  .chip{border:1px solid var(--line2);background:var(--card);color:var(--soft);padding:7px 12px;border-radius:999px;font-size:.78rem;cursor:pointer;font-weight:600}
+  .chip[aria-pressed="true"]{background:var(--teal);color:#fff;border-color:var(--teal)}
+  :root[data-theme="dark"] .chip[aria-pressed="true"]{color:#08211d}
+  @media(prefers-color-scheme:dark){.chip[aria-pressed="true"]{color:#08211d}}
+  textarea{width:100%;border:1px solid var(--line2);background:var(--card);color:var(--ink);border-radius:12px;padding:12px;font-family:inherit;font-size:.88rem;resize:vertical;min-height:64px}
+  .forgeout{border:1px dashed var(--line2);border-radius:14px;padding:14px;margin-top:12px;background:var(--card2);min-height:70px}
+  .shimmer{height:12px;border-radius:6px;background:linear-gradient(90deg,var(--line) 25%,var(--card2) 37%,var(--line) 63%);background-size:400% 100%;margin:8px 0}
+  @media(prefers-reduced-motion:no-preference){.shimmer{animation:sh 1.3s ease infinite}@keyframes sh{0%{background-position:100% 0}100%{background-position:0 0}}}
+  .prov{display:inline-flex;align-items:center;gap:6px;font-family:ui-monospace,monospace;font-size:.66rem;color:var(--faint)}
+  .prov .live{width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 0 3px var(--good-soft)}
+
+  .queueitem{display:flex;gap:10px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px;margin-bottom:10px;box-shadow:var(--shadow-sm)}
+  .queueitem .m{flex:1}
+  .queueitem .q{font-weight:700;font-size:.9rem}
+  .queueitem .acts{display:flex;gap:6px;margin-top:8px}
+  .mini{border:none;cursor:pointer;font-size:.74rem;font-weight:700;padding:6px 11px;border-radius:9px}
+  .mini.ok{background:var(--good-soft);color:var(--good)} .mini.no{background:var(--bad-soft);color:var(--bad)}
+
+  .field{margin-bottom:10px}
+  .field label{display:block;font-size:.72rem;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:700}
+  .field input,.field select{width:100%;border:1px solid var(--line2);background:var(--card);color:var(--ink);border-radius:11px;padding:11px;font-family:inherit;font-size:.88rem}
+
+  .chart{display:flex;align-items:flex-end;gap:7px;height:110px;padding:10px;background:var(--card);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow-sm)}
+  .chart .col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}
+  .chart .col i{width:100%;background:linear-gradient(180deg,var(--teal),var(--teal-d));border-radius:5px 5px 0 0;min-height:4px}
+  .chart .col b{font-size:.58rem;color:var(--faint);font-weight:600}
+
+  /* grand hunt split */
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+  .side{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center;box-shadow:var(--shadow-sm)}
+  .side .av{width:44px;height:44px;border-radius:50%;margin:0 auto 6px;display:grid;place-items:center;font-size:22px;background:var(--teal-soft)}
+  .side .nm{font-weight:700;font-size:.84rem}
+  .side .st{font-size:.68rem;color:var(--faint)}
+  .voicebar{display:flex;align-items:center;gap:8px;justify-content:center;font-size:.74rem;color:var(--teal-d);margin-top:4px}
+  .voicebar i{width:3px;border-radius:2px;background:var(--teal)}
+  @media(prefers-reduced-motion:no-preference){.voicebar i{animation:eq .9s ease-in-out infinite}@keyframes eq{0%,100%{height:6px}50%{height:16px}}}
+
+  .lb{display:flex;align-items:center;gap:12px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:var(--card);box-shadow:var(--shadow-sm)}
+  .lb .rk{font-weight:800;width:22px;text-align:center;color:var(--gold-ink)}
+  .lb .nm{flex:1;font-weight:600;font-size:.9rem}
+  .lb .pt{font-family:ui-monospace,monospace;font-weight:700;color:var(--teal-d)}
+
+  .banner{font-size:.72rem;color:var(--faint);text-align:center;padding:8px 12px;border:1px dashed var(--line2);border-radius:10px;margin-top:14px}
+  .prov-note{font-size:.7rem;color:var(--faint);margin-top:8px}
+
+  /* ===== puzzle types: match & order ===== */
+  .matchwrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+  .matchcol{display:flex;flex-direction:column;gap:9px}
+  .mtile{border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:12px 10px;cursor:pointer;font-size:.86rem;font-weight:600;text-align:center;transition:transform .1s,border-color .1s}
+  .mtile:hover{transform:translateY(-1px)}
+  .mtile.sel{border-color:var(--gold);background:var(--gold-soft);color:var(--gold-ink)}
+  .mtile.done{border-color:var(--good);background:var(--good-soft);color:var(--good);cursor:default;opacity:.85}
+  .mtile.bad{border-color:var(--bad);background:var(--bad-soft);color:var(--bad)}
+  .orderpool{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  .otile{border:1.5px solid var(--line);background:var(--card);border-radius:11px;padding:10px 12px;cursor:pointer;font-size:.85rem;font-weight:600;transition:transform .1s}
+  .otile:hover{transform:translateY(-1px)} .otile.used{opacity:.35;pointer-events:none}
+  .orderseq{display:flex;flex-direction:column;gap:7px;margin:4px 0 6px}
+  .oslot{display:flex;align-items:center;gap:10px;border:1.5px dashed var(--line2);border-radius:11px;padding:10px 12px;font-size:.85rem;min-height:42px;color:var(--faint)}
+  .oslot.filled{border-style:solid;border-color:var(--line);color:var(--ink);font-weight:600;background:var(--card)}
+  .oslot.right{border-color:var(--good);background:var(--good-soft);color:var(--good)}
+  .oslot.wrong{border-color:var(--bad);background:var(--bad-soft);color:var(--bad)}
+  .oslot .n{font-family:ui-monospace,monospace;font-size:.7rem;color:var(--gold-ink);font-weight:800}
+  .ptype{display:inline-flex;align-items:center;gap:5px;font-family:ui-monospace,Menlo,monospace;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-d);background:var(--teal-soft);padding:3px 8px;border-radius:999px;font-weight:700;margin-bottom:8px}
+
+  /* ===== directions / route ===== */
+  .routelayer{position:absolute;inset:0;z-index:5;pointer-events:none}
+  .routelayer .rl{fill:none;stroke:var(--teal-d);stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:7 8;filter:drop-shadow(0 1px 3px rgba(0,0,0,.35))}
+  @media(prefers-reduced-motion:no-preference){.routelayer .rl{animation:dash 1s linear infinite}@keyframes dash{to{stroke-dashoffset:-30}}}
+  .routelayer .rl.base{stroke:color-mix(in oklab,var(--teal) 55%,#fff);stroke-width:6;stroke-dasharray:none;opacity:.5;animation:none;filter:none}
+  .routepin{position:absolute;transform:translate(-50%,-100%);z-index:7;font-size:26px;filter:drop-shadow(0 5px 6px rgba(0,0,0,.3))}
+  .dirsheet{position:absolute;left:0;right:0;bottom:0;z-index:12;background:var(--card);border-top:1px solid var(--line);border-radius:22px 22px 0 0;padding:16px 16px 18px;box-shadow:0 -10px 40px rgba(0,0,0,.2)}
+  .dirsheet .dh{display:flex;align-items:center;gap:12px}
+  .dirsheet .eta{font-size:1.5rem;font-weight:800;letter-spacing:-.02em}
+  .dirsheet .modepick{display:flex;gap:6px}
+  .modepick button{border:1px solid var(--line2);background:var(--card2);border-radius:10px;padding:7px 11px;cursor:pointer;font-size:.9rem;color:var(--soft)}
+  .modepick button[aria-pressed="true"]{background:var(--teal);color:#fff;border-color:var(--teal)}
+  :root[data-theme="dark"] .modepick button[aria-pressed="true"]{color:#08211d}
+  @media(prefers-color-scheme:dark){.modepick button[aria-pressed="true"]{color:#08211d}}
+  .steps{display:flex;flex-direction:column;gap:8px;margin:12px 0;max-height:132px;overflow-y:auto}
+  .step2{display:flex;gap:11px;align-items:flex-start;font-size:.84rem}
+  .step2 .si{width:26px;height:26px;border-radius:8px;flex:none;display:grid;place-items:center;background:var(--teal-soft);color:var(--teal-d);font-size:14px}
+  .step2 .sd{color:var(--soft)} .step2 .sd b{color:var(--ink)}
+
+  /* ===== Majlis ===== */
+  .mj-hero{background:linear-gradient(140deg,var(--teal-d),#0a3f3a 92%);color:#eafcf8;border-radius:20px;padding:18px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+  .mj-hero::after{content:"";position:absolute;right:-40px;top:-40px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.06)}
+  .mj-hero .nm{font-size:1.3rem;font-weight:800;letter-spacing:-.01em}
+  .mj-hero .sub2{font-size:.78rem;opacity:.85;margin-top:2px}
+  .avrow{display:flex;margin:14px 0 4px}
+  .avrow .a{width:42px;height:42px;border-radius:50%;background:#0a4a44;border:2.5px solid var(--teal-d);display:grid;place-items:center;font-size:20px;margin-left:-10px;position:relative}
+  .avrow .a:first-child{margin-left:0}
+  .avrow .a .on{position:absolute;right:-1px;bottom:-1px;width:11px;height:11px;border-radius:50%;background:#39d98a;border:2px solid var(--teal-d)}
+  .avrow .a.more{background:rgba(255,255,255,.14);font-size:.72rem;font-weight:800}
+  .mj-cta{display:flex;gap:10px;margin-top:14px}
+  .friend{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:11px 12px;margin-bottom:9px;box-shadow:var(--shadow-sm)}
+  .friend .fa{width:42px;height:42px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:20px;background:var(--teal-soft);position:relative}
+  .friend .fa .on{position:absolute;right:-1px;bottom:-1px;width:11px;height:11px;border-radius:50%;border:2px solid var(--card)}
+  .friend .fa .on.online{background:#39d98a} .friend .fa .on.hunt{background:var(--gold)} .friend .fa .on.off{background:var(--faint)}
+  .friend .m{flex:1;min-width:0}
+  .friend .t{font-weight:700;font-size:.9rem}
+  .friend .d{font-size:.74rem;color:var(--faint)}
+  .friend .act{border:1px solid var(--line2);background:var(--card2);color:var(--teal-d);border-radius:9px;padding:6px 10px;font-size:.74rem;font-weight:700;cursor:pointer}
+  .evt{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:13px;padding:12px;margin-bottom:9px;box-shadow:var(--shadow-sm)}
+  .evt .when{text-align:center;flex:none;width:46px}
+  .evt .when .d1{font-size:1.2rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+  .evt .when .m1{font-size:.6rem;text-transform:uppercase;color:var(--faint);letter-spacing:.06em}
+  .evt .m{flex:1;min-width:0}
+  .evt .t{font-weight:700;font-size:.9rem}
+  .evt .d{font-size:.74rem;color:var(--soft)}
+
+  /* group call */
+  .callwrap{height:100%;display:flex;flex-direction:column;background:radial-gradient(circle at 50% 20%, #0b2b27, #050f0e 85%);color:#eafcf8;padding:14px}
+  .callbar{display:flex;align-items:center;justify-content:space-between;flex:none}
+  .liveflag{display:inline-flex;align-items:center;gap:7px;font-size:.72rem;font-weight:800;background:rgba(255,80,80,.16);color:#ff8a8a;padding:5px 11px;border-radius:999px}
+  .liveflag .rd{width:8px;height:8px;border-radius:50%;background:#ff5a5a}
+  @media(prefers-reduced-motion:no-preference){.liveflag .rd{animation:pulse2 1.3s ease-in-out infinite}@keyframes pulse2{0%,100%{opacity:1}50%{opacity:.35}}}
+  .calltimer{font-family:ui-monospace,monospace;font-weight:800;font-size:.9rem;color:#ffd98a}
+  .callgrid{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:center;padding:12px 0}
+  .ctile{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:18px;padding:16px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;position:relative}
+  .ctile.speaking{border-color:#39d98a;box-shadow:0 0 0 2px rgba(57,217,138,.3)}
+  .ctile .cav{width:60px;height:60px;border-radius:50%;background:#0a4a44;display:grid;place-items:center;font-size:30px}
+  .ctile .cn{font-size:.82rem;font-weight:700}
+  .ctile .mic{position:absolute;top:10px;right:10px;font-size:13px;opacity:.8}
+  .ceq{display:flex;align-items:flex-end;gap:2px;height:14px}
+  .ceq i{width:3px;background:#39d98a;border-radius:2px;height:5px}
+  @media(prefers-reduced-motion:no-preference){.ctile.speaking .ceq i{animation:eq 0.8s ease-in-out infinite}.ctile.speaking .ceq i:nth-child(2){animation-delay:.15s}.ctile.speaking .ceq i:nth-child(3){animation-delay:.3s}.ctile.speaking .ceq i:nth-child(4){animation-delay:.45s}}
+  .callctrls{flex:none;display:flex;justify-content:center;gap:14px;padding:8px 0 4px}
+  .cbtn{width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;font-size:22px;display:grid;place-items:center;background:rgba(255,255,255,.12);color:#fff}
+  .cbtn.end{background:#e23b3b} .cbtn.on{background:#39d98a;color:#053}
+  .poi{cursor:pointer;pointer-events:auto;transition:transform .1s}
+  .poi:hover{transform:translate(-50%,-50%) scale(1.12)}
+
+  /* ============================================================
+     PREMIUM LAYER v0.5 — real map + game-grade design system
+     R&D refs: Landlord GO (map markers/value bubbles, cards),
+     Pokémon GO (centered avatar + radius ring, floating markers,
+     nearby sheet), Monopoly GO (juicy depth, tactile buttons),
+     Uber/Maps (full-bleed map, glass FABs, bottom sheet).
+     ============================================================ */
+  :root{
+    --grad-teal:linear-gradient(145deg,#19b39e,#0c7a6d);
+    --grad-gold:linear-gradient(145deg,#f4c65a,#c98a1e);
+    --glass:color-mix(in oklab,var(--card) 72%, transparent);
+    --glass-line:color-mix(in oklab,var(--ink) 12%, transparent);
+    --pop:0 2px 4px rgba(8,20,18,.10),0 12px 30px rgba(8,20,18,.16);
+    --pop-lg:0 6px 14px rgba(8,20,18,.18),0 24px 60px rgba(8,20,18,.30);
+    --inset-hi:inset 0 1px 0 rgba(255,255,255,.35);
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --glass:color-mix(in oklab,var(--card) 78%, transparent);
+    --glass-line:rgba(255,255,255,.10);
+    --inset-hi:inset 0 1px 0 rgba(255,255,255,.10);
+  }}
+  :root[data-theme="dark"]{--glass:color-mix(in oklab,var(--card) 78%, transparent);--glass-line:rgba(255,255,255,.10);--inset-hi:inset 0 1px 0 rgba(255,255,255,.10)}
+
+  /* juicier buttons */
+  .btn{border-radius:15px;box-shadow:var(--pop),var(--inset-hi);font-weight:750;letter-spacing:-.01em;transition:transform .12s cubic-bezier(.2,.8,.2,1),filter .12s,box-shadow .12s}
+  .btn:hover{transform:translateY(-1.5px);filter:brightness(1.06)} .btn:active{transform:translateY(0) scale(.985)}
+  .btn.gold{background:var(--grad-gold)}
+  .btn:not(.gold):not(.ghost){background:var(--grad-teal)}
+  .btn.ghost{box-shadow:none}
+
+  /* topbar → game HUD chips */
+  .topbar{padding:14px 16px 8px}
+  .stat .p,.stat .s{padding:6px 12px;border-radius:999px;font-weight:800;box-shadow:var(--pop),var(--inset-hi);border:1px solid var(--glass-line)}
+  .stat .p{background:var(--grad-gold);color:#3a2708} .stat .s{background:var(--grad-teal);color:#eafff9}
+  .topbar .b .mk{box-shadow:var(--pop)}
+
+  /* bottom nav polish */
+  .nav{background:var(--glass);backdrop-filter:blur(16px) saturate(1.3);border-top:1px solid var(--glass-line);padding-top:4px}
+  .nav button{transition:color .12s,transform .12s} .nav button .i{transition:transform .16s}
+  .nav button[aria-pressed="true"] .i{transform:translateY(-2px) scale(1.14)}
+  .nav button[aria-pressed="true"]{color:var(--teal-d)}
+
+  /* ---- full-bleed real map ---- */
+  .screen.mapmode{padding:0;position:relative;overflow:hidden}
+  .glmap{position:absolute;inset:0;background:var(--app)}
+  .glmap canvas{outline:none}
+  .maplibregl-ctrl-attrib{font-size:9px;opacity:.5;background:transparent!important}
+  .maplibregl-ctrl-attrib a{color:var(--faint)}
+  .maplibregl-ctrl-bottom-left{display:none}
+
+  /* map markers (Landlord/PoGO style) */
+  .gq-marker{cursor:pointer;will-change:transform}
+  .gq-marker .mk-inner{position:relative;transition:transform .15s cubic-bezier(.2,.8,.2,1)}
+  .gq-marker:hover .mk-inner{transform:translateY(-3px) scale(1.06)}
+  .gq-marker .mpin{width:44px;height:44px;border-radius:50%;background:var(--grad-gold);
+    display:grid;place-items:center;border:2.5px solid #fff;box-shadow:0 6px 12px rgba(0,0,0,.35),var(--inset-hi)}
+  .gq-marker.sp .mpin{background:var(--grad-teal)}
+  .gq-marker .mpin b{font-size:21px;line-height:1}
+  .gq-marker .mval{position:absolute;top:-15px;left:50%;transform:translateX(-50%);white-space:nowrap;font:800 11px/1 ui-monospace,Menlo,monospace;
+    background:#fff;color:#1a1405;padding:3px 8px;border-radius:999px;box-shadow:0 3px 8px rgba(0,0,0,.3);border:1px solid rgba(0,0,0,.06)}
+  .gq-marker.sp .mval{background:#062a25;color:#7ff0dd}
+  .gq-marker .mglow{position:absolute;left:50%;top:40px;transform:translateX(-50%);width:38px;height:11px;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.3),transparent);z-index:-1}
+  @media(prefers-reduced-motion:no-preference){.gq-marker .mpin{animation:mbob 2.6s ease-in-out infinite}@keyframes mbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}}
+
+  .gq-poi{cursor:pointer;width:30px;height:30px;border-radius:10px;background:var(--glass);backdrop-filter:blur(8px);border:1px solid var(--glass-line);
+    display:grid;place-items:center;font-size:15px;box-shadow:var(--pop);transition:box-shadow .14s,border-color .14s}
+  .gq-poi:hover{box-shadow:var(--pop-lg);border-color:var(--teal)}
+
+  .gq-me{position:relative;width:26px;height:26px}
+  .gq-me .dot{position:absolute;inset:0;border-radius:50%;background:var(--grad-teal);border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.4),0 0 0 2px color-mix(in oklab,var(--teal) 40%,transparent);z-index:2}
+  .gq-me .ring{position:absolute;left:50%;top:50%;width:120px;height:120px;transform:translate(-50%,-50%);border-radius:50%;
+    background:radial-gradient(closest-side,color-mix(in oklab,var(--teal) 26%,transparent),transparent 72%);z-index:1}
+  @media(prefers-reduced-motion:no-preference){.gq-me .ring::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid color-mix(in oklab,var(--teal) 55%,transparent);animation:sonar 2.6s ease-out infinite}@keyframes sonar{0%{transform:scale(.35);opacity:.9}100%{transform:scale(1);opacity:0}}}
+
+  .gq-dest{font-size:30px;filter:drop-shadow(0 6px 8px rgba(0,0,0,.4));transform:translateY(-6px)}
+
+  /* floating map controls */
+  .mapfabs{position:absolute;right:12px;top:12px;z-index:6;display:flex;flex-direction:column;gap:9px}
+  .mapfab{width:42px;height:42px;border-radius:14px;border:1px solid var(--glass-line);background:var(--glass);backdrop-filter:blur(14px) saturate(1.3);
+    color:var(--ink);cursor:pointer;font-size:17px;box-shadow:var(--pop);display:grid;place-items:center;transition:transform .12s}
+  .mapfab:active{transform:scale(.92)} .mapfab.pri{background:var(--grad-teal);color:#eafff9;border:none}
+  .mapchip{position:absolute;left:12px;top:12px;z-index:6;display:inline-flex;align-items:center;gap:7px;font-size:.72rem;font-weight:800;
+    background:var(--glass);backdrop-filter:blur(14px);border:1px solid var(--glass-line);padding:8px 13px;border-radius:999px;box-shadow:var(--pop)}
+  .mapchip .lv{width:8px;height:8px;border-radius:50%;background:#39d98a;box-shadow:0 0 0 3px rgba(57,217,138,.25)}
+
+  /* bottom sheet (PoGO nearby tray / Uber) */
+  .mapsheet{position:absolute;left:0;right:0;bottom:0;z-index:7;background:var(--glass);backdrop-filter:blur(20px) saturate(1.35);
+    border-top:1px solid var(--glass-line);border-radius:24px 24px 0 0;box-shadow:0 -12px 40px rgba(8,20,18,.28);
+    padding:8px 14px 14px;max-height:60%;display:flex;flex-direction:column;transition:max-height .32s cubic-bezier(.2,.8,.2,1)}
+  .mapsheet.peek{max-height:210px}
+  .sheetgrip{width:40px;height:5px;border-radius:3px;background:var(--line2);margin:4px auto 8px;flex:none;cursor:pointer}
+  .sheethead{display:flex;align-items:center;justify-content:space-between;flex:none;margin-bottom:8px}
+  .sheethead h3{margin:0;font-size:1.05rem;letter-spacing:-.01em}
+  .sheethead .cnt{font:700 .7rem ui-monospace,Menlo,monospace;color:var(--faint);background:var(--card2);padding:3px 9px;border-radius:999px}
+  .sheetscroll{overflow-y:auto;flex:1;margin:0 -4px;padding:0 4px}
+  .sheetscroll::-webkit-scrollbar{width:0}
+  .hcard{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:11px;margin-bottom:9px;box-shadow:var(--pop);cursor:pointer;transition:transform .12s}
+  .hcard:hover{transform:translateY(-2px)}
+  .hcard .ic{width:46px;height:46px;border-radius:13px;flex:none;display:grid;place-items:center;font-size:22px;background:var(--gold-soft);box-shadow:var(--inset-hi)}
+  .hcard.sp .ic{background:var(--teal-soft)}
+  .hcard .m{flex:1;min-width:0}
+  .hcard .t{font-weight:750;font-size:.92rem;display:flex;align-items:center;gap:6px}
+  .hcard .d{font-size:.74rem;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+  .hcard .rt{text-align:right;flex:none}
+  .hcard .rt .dist{font:800 .74rem ui-monospace,Menlo,monospace;color:var(--teal-d)}
+  .hcard .go{margin-top:4px;font-size:.64rem;font-weight:800;color:#fff;background:var(--grad-teal);padding:4px 9px;border-radius:999px;display:inline-block}
+  .nearcard{background:var(--card);border:1px solid var(--teal);border-radius:18px;padding:12px;margin-bottom:10px;box-shadow:0 0 0 3px var(--teal-soft),var(--pop)}
+  .nearcard .k{font:800 .6rem/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--teal-d)}
+  .nearcard .row{display:flex;gap:12px;align-items:center;margin:8px 0 10px}
+  .nearcard .ic{width:50px;height:50px;border-radius:14px;flex:none;display:grid;place-items:center;font-size:25px;background:var(--gold-soft);box-shadow:var(--inset-hi)}
+  .seg2{display:flex;gap:6px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:10px;flex:none}
+  .seg2 button{flex:1;border:none;background:none;cursor:pointer;font-size:.78rem;font-weight:750;color:var(--soft);padding:7px 4px;border-radius:9px}
+  .seg2 button[aria-pressed="true"]{background:var(--card);color:var(--teal-d);box-shadow:var(--pop)}
+
+  /* route directions sheet — restyle to premium */
+  .dirsheet{background:var(--glass);backdrop-filter:blur(20px) saturate(1.3);border-radius:24px 24px 0 0;box-shadow:0 -12px 40px rgba(8,20,18,.3)}
+
+  /* ---- icons ---- */
+  .ic-svg{display:block} .ci{display:inline-flex;align-items:center}
+  .chipbtn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--glass-line);cursor:pointer;font-weight:800;font-family:inherit;
+    padding:6px 12px;border-radius:999px;box-shadow:var(--pop),var(--inset-hi);font-size:.8rem;transition:transform .12s}
+  .chipbtn:active{transform:scale(.95)} .chipbtn .ci{width:15px;height:15px}
+  .chipbtn.p{background:var(--grad-gold);color:#3a2708} .chipbtn.s{background:var(--grad-teal);color:#eafff9}
+  .nav button .i .ic-svg{width:23px;height:23px}
+
+  /* section header with icon */
+  .sech{display:flex;align-items:center;gap:8px;margin:20px 0 10px;font-size:1.02rem;letter-spacing:-.01em}
+  .sech .ic-svg{color:var(--teal-d)}
+
+  /* streak bar (Play home) */
+  .streakbar{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#3a2a08,#241a05);color:#ffe6a8;border:1px solid color-mix(in oklab,var(--gold) 40%,transparent);
+    border-radius:18px;padding:14px 16px;box-shadow:var(--pop);margin-bottom:4px}
+  .streakbar .ic-svg{color:#ffb94d;filter:drop-shadow(0 0 6px rgba(255,150,40,.5))}
+  .streakbar .big{font-weight:800;font-size:1.1rem} .streakbar .sm{font-size:.76rem;opacity:.85}
+  .streakbar .btn{width:auto;background:rgba(255,255,255,.14);box-shadow:none;color:#fff}
+
+  /* game-mode grid */
+  .modegrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .modecard{position:relative;overflow:hidden;text-align:left;cursor:pointer;border:none;border-radius:18px;padding:15px 14px 14px;color:#fff;
+    background:var(--mg,var(--grad-teal));box-shadow:var(--pop),var(--inset-hi);min-height:104px;display:flex;flex-direction:column;gap:2px;transition:transform .13s cubic-bezier(.2,.8,.2,1),filter .13s}
+  .modecard:hover{transform:translateY(-2px);filter:brightness(1.06)} .modecard:active{transform:scale(.98)}
+  .modecard .mi{width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.2);display:grid;place-items:center;margin-bottom:10px;box-shadow:var(--inset-hi)}
+  .modecard .mi .ic-svg{color:#fff}
+  .modecard .mt{font-weight:800;font-size:.98rem;letter-spacing:-.01em}
+  .modecard .ms{font-size:.74rem;opacity:.9}
+  .modecard .badge{position:absolute;top:12px;right:12px;font-size:.6rem;font-weight:800;background:rgba(0,0,0,.28);padding:3px 8px;border-radius:999px;letter-spacing:.04em}
+  .modecard::after{content:"";position:absolute;right:-24px;bottom:-24px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.10)}
+
+  /* daily card in map sheet */
+  .dailycard{display:flex;align-items:center;gap:12px;cursor:pointer;border-radius:16px;padding:12px;margin-bottom:10px;color:#3a2708;
+    background:var(--grad-gold);box-shadow:var(--pop),var(--inset-hi)}
+  .dailycard .ic-svg{color:#7a4e05}
+  .dailycard .m{flex:1;min-width:0} .dailycard .t{font-weight:800;font-size:.92rem} .dailycard .d{font-size:.74rem;opacity:.85}
+  .dailycard .play{background:rgba(0,0,0,.16);color:#241a05;font-weight:800;font-size:.76rem;padding:6px 13px;border-radius:999px}
+
+  /* redeem store */
+  .redeemlist{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+  .redeem{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:15px;padding:11px;box-shadow:var(--pop)}
+  .redeem .ic{width:44px;height:44px;border-radius:12px;flex:none;display:grid;place-items:center;font-size:22px;background:var(--gold-soft)}
+  .redeem .m{flex:1;min-width:0} .redeem .t{font-weight:750;font-size:.9rem} .redeem .d{font-size:.74rem;color:var(--faint)}
+  .redeem-btn{white-space:nowrap} .redeem-btn.off{filter:grayscale(.6);opacity:.5;cursor:not-allowed}
+  .redeem.done{border-color:var(--good)} .redeem .code{font-family:ui-monospace,Menlo,monospace;font-size:.72rem;color:var(--good);font-weight:800}
+
+  /* trail row + manage/delete (business) */
+  .bizhunt{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:10px 12px;margin-bottom:8px;box-shadow:var(--pop)}
+  .bizhunt .ic{width:38px;height:38px;border-radius:11px;flex:none;display:grid;place-items:center;font-size:19px;background:var(--teal-soft)}
+  .bizhunt .m{flex:1;min-width:0} .bizhunt .t{font-weight:700;font-size:.88rem} .bizhunt .d{font-size:.72rem;color:var(--faint)}
+  .iconbtn{border:1px solid var(--line2);background:var(--card2);color:var(--bad);border-radius:10px;padding:8px;cursor:pointer;display:grid;place-items:center}
+  .iconbtn .ic-svg{width:18px;height:18px}
+  .adminbar{display:flex;align-items:center;gap:8px;font-size:.74rem;color:var(--teal-d);background:var(--teal-soft);border-radius:10px;padding:9px 12px;margin-bottom:12px;font-weight:600}
+
+  /* ===== animated treasure chest ===== */
+  .chestscene{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:24px;perspective:800px}
+  .chest3d{position:relative;width:150px;height:120px;cursor:pointer;transform-style:preserve-3d}
+  .chest3d .glow{position:absolute;left:50%;top:46%;width:200px;height:200px;transform:translate(-50%,-50%) scale(.2);border-radius:50%;opacity:0;z-index:0;
+    background:radial-gradient(circle,rgba(255,214,120,.9),rgba(255,180,60,.35) 40%,transparent 70%);transition:transform .5s ease,opacity .5s ease}
+  .chest3d .base{position:absolute;left:15px;right:15px;bottom:0;height:66px;border-radius:10px 10px 12px 12px;z-index:2;
+    background:linear-gradient(180deg,#a9791f,#7a5310);border:2px solid #5e3f0b;box-shadow:inset 0 -6px 10px rgba(0,0,0,.35),inset 0 3px 0 rgba(255,255,255,.18)}
+  .chest3d .base::before{content:"";position:absolute;left:50%;top:8px;transform:translateX(-50%);width:22px;height:26px;border-radius:5px;background:linear-gradient(180deg,#ffe08a,#c99a2a);border:2px solid #6b4a10;box-shadow:inset 0 -2px 3px rgba(0,0,0,.3)}
+  .chest3d .base::after{content:"";position:absolute;left:50%;top:18px;transform:translateX(-50%);width:6px;height:9px;border-radius:3px;background:#3a2708}
+  .chest3d .strap{position:absolute;left:36px;right:36px;bottom:0;height:66px;background:linear-gradient(180deg,#e8b64a,#b7841c);border-left:2px solid #6b4a10;border-right:2px solid #6b4a10;z-index:3;opacity:.9}
+  .chest3d .lid{position:absolute;left:11px;right:11px;top:22px;height:40px;border-radius:14px 14px 6px 6px;z-index:4;transform-origin:50% 100%;transform:rotateX(0deg);transition:transform .55s cubic-bezier(.34,1.56,.5,1);
+    background:linear-gradient(180deg,#f0c95a,#c9962a);border:2px solid #6b4a10;box-shadow:inset 0 3px 0 rgba(255,255,255,.3)}
+  .chest3d .lid .band{position:absolute;left:24px;right:24px;top:0;bottom:0;background:linear-gradient(180deg,#ffe08a,#d7a838);border-left:2px solid #6b4a10;border-right:2px solid #6b4a10}
+  .chest3d .spk{position:absolute;left:50%;top:44%;width:9px;height:9px;border-radius:2px;z-index:5;opacity:0}
+  .chest3d.open .lid{transform:rotateX(-118deg)}
+  .chest3d.open .glow{transform:translate(-50%,-50%) scale(1);opacity:1}
+  @media(prefers-reduced-motion:no-preference){
+    .chest3d:not(.open){animation:chestIdle 2.2s ease-in-out infinite}
+    @keyframes chestIdle{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-3px) rotate(-1deg)}75%{transform:translateY(-3px) rotate(1deg)}}
+    .chest3d.open .spk{animation:spkfly .8s ease-out forwards}
+    @keyframes spkfly{0%{opacity:1;transform:translate(-50%,-50%) scale(.4)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(1.1) rotate(180deg)}}
+  }
+  .chest3d.open{animation:chestPop .4s ease}
+  @keyframes chestPop{0%{transform:scale(1)}40%{transform:scale(1.08)}100%{transform:scale(1)}}
+
+  /* ===== mega / grand hunt ===== */
+  .megaflag{position:absolute;left:12px;top:12px;z-index:8;display:inline-flex;align-items:center;gap:7px;font-size:.72rem;font-weight:800;color:#fff;
+    background:linear-gradient(135deg,#e0457b,#b02a8f);padding:7px 13px;border-radius:999px;box-shadow:var(--pop)}
+  .megaflag .rd{width:8px;height:8px;border-radius:50%;background:#ffd0e4}
+  @media(prefers-reduced-motion:no-preference){.megaflag .rd{animation:pulse2 1.2s infinite}}
+  .d3badge{position:absolute;right:12px;top:12px;z-index:8;font-family:ui-monospace,Menlo,monospace;font-size:.66rem;font-weight:800;color:var(--ink);
+    background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--glass-line);padding:6px 11px;border-radius:999px;box-shadow:var(--pop)}
+  .megasheet{position:absolute;left:0;right:0;bottom:0;z-index:9;background:var(--glass);backdrop-filter:blur(20px) saturate(1.35);
+    border-top:1px solid var(--glass-line);border-radius:24px 24px 0 0;box-shadow:0 -12px 40px rgba(8,20,18,.32);padding:12px 14px 16px;max-height:66%;display:flex;flex-direction:column}
+  .megahead{display:flex;align-items:center;gap:10px;flex:none;margin-bottom:6px}
+  .megahead .t{font-weight:800;font-size:1.05rem;letter-spacing:-.01em} .megahead .s{font-size:.74rem;color:var(--soft)}
+  .megaprog{flex:none;margin:8px 0 12px}
+  .megaprog .bar{height:9px;border-radius:5px;background:var(--line2);overflow:hidden} .megaprog .bar i{display:block;height:100%;background:linear-gradient(90deg,#e0457b,#c9962a);transition:width .4s}
+  .megaprog .lab{display:flex;justify-content:space-between;font-size:.72rem;margin-top:6px;color:var(--soft);font-weight:700}
+  .stationscroll{overflow-y:auto;flex:1;margin:0 -4px;padding:0 4px}
+  .station{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:11px;margin-bottom:9px;box-shadow:var(--pop);cursor:pointer;transition:transform .12s}
+  .station:hover{transform:translateY(-2px)}
+  .station.done{border-color:var(--good);opacity:.75}
+  .station .logo{width:48px;height:48px;border-radius:14px;flex:none;display:grid;place-items:center;font-size:24px;color:#fff;box-shadow:var(--inset-hi)}
+  .station .m{flex:1;min-width:0} .station .t{font-weight:800;font-size:.95rem} .station .d{font-size:.74rem;color:var(--faint)}
+  .station .go{font-size:.66rem;font-weight:800;color:#fff;background:var(--grad-teal);padding:5px 11px;border-radius:999px}
+  .station.done .go{background:var(--good)}
+  .shoeimg{width:100%;height:120px;border-radius:14px;margin-bottom:12px;display:grid;place-items:center;background:radial-gradient(circle at 40% 30%,#2b2b31,#111116);border:1px solid rgba(255,255,255,.08)}
+  .shoeimg svg{filter:drop-shadow(0 8px 10px rgba(0,0,0,.5))}
+  .megareward{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:26px}
+  .megareward .crown{font-size:64px;filter:drop-shadow(0 8px 14px rgba(224,69,123,.4))}
+  .megareward .prize{background:linear-gradient(135deg,#e0457b,#c9962a);color:#fff;font-weight:800;font-size:1.15rem;padding:14px 22px;border-radius:16px;box-shadow:var(--pop)}
+  .megahead .logo{display:grid;place-items:center;flex:none}
+  .gq-marker.done{opacity:.55;filter:grayscale(.45)}
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <aside class="intro">
+    <div class="brand"><span class="mark">◈</span> GeoQuest</div>
+    <p class="tag">Walk · Solve · Win · Learn</p>
+    <p>Interactive prototype — v0.1. Click through all three sides of the product. Switch roles below.</p>
+    <div class="roleswitch" id="roleswitch">
+      <button data-role="player" aria-pressed="true"><span class="ic">🧭</span><span><span class="lab">Player</span><br><span class="sub">Hunt Drops, solve, learn</span></span></button>
+      <button data-role="studio" aria-pressed="false"><span class="ic">⚒️</span><span><span class="lab">Studio</span><br><span class="sub">The Forge + review queue</span></span></button>
+      <button data-role="business" aria-pressed="false"><span class="ic">🏪</span><span><span class="lab">Business</span><br><span class="sub">Sponsor Drops, see footfall</span></span></button>
+    </div>
+    <button class="themebtn" id="themebtn">◐ Toggle light / dark</button>
+    <p class="side-note">Prototype: locations are simulated, rewards & the Forge are demo-served from a local bank (production calls Claude / Gemini live). Nothing here is final — everything can change.</p>
+  </aside>
+
+  <div class="phonewrap">
+    <div class="phone" id="phone">
+      <div class="notch"></div>
+      <div class="topbar">
+        <div class="b"><span class="mk">◈</span> GeoQuest</div>
+        <div class="stat">
+          <button class="chipbtn p" id="pearlChip"><span class="ci"></span><span id="pearls">120</span></button>
+          <button class="chipbtn s" id="streakChip"><span class="ci"></span><span id="streak">6</span></button>
+        </div>
+      </div>
+
+      <div class="screen" id="screen"><!-- rendered by JS --></div>
+
+      <div class="nav" id="nav"><!-- rendered by JS --></div>
+
+      <div class="overlay" id="overlay"><div id="ovContent" style="display:flex;flex-direction:column;height:100%"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $=function(s,r){return (r||document).querySelector(s)};
+  var el=function(t,c,h){var e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
+  /* crafted line-icon set (currentColor) — replaces generic emoji in the chrome */
+  var SVGI={
+    map:'<path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4Z"/><path d="M9 4v14M15 6v14"/>',
+    play:'<circle cx="12" cy="12" r="9"/><path d="M10 8.3 16.2 12 10 15.7Z"/>',
+    crew:'<circle cx="8.5" cy="9" r="2.8"/><circle cx="16" cy="9.5" r="2.4"/><path d="M3 18.5a5.5 5.5 0 0 1 11 0M14.5 18a4.8 4.8 0 0 1 6.5-3.4"/>',
+    user:'<circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/>',
+    pearl:'<circle cx="12" cy="12" r="8"/><circle cx="9.4" cy="9.4" r="2.2" fill="currentColor" stroke="none" opacity=".5"/>',
+    flame:'<path d="M12 3c.5 3 3 4 3 7a3 3 0 0 1-6 .3C9 8 12 7 12 3Z"/><path d="M7.5 12A5.5 5.5 0 1 0 17 15.8C17 11 13 10 12 3"/>',
+    gift:'<rect x="3.5" y="8" width="17" height="4" rx="1"/><path d="M5 12v8.5h14V12M12 8v12.5M12 8C10.5 4.5 6.5 5.2 8.4 8M12 8c1.5-3.5 5.5-2.8 3.6 0"/>',
+    book:'<path d="M4 5.5A2 2 0 0 1 6 3.5h11.5v14H6a2 2 0 0 0-2 2Z"/><path d="M4 19.5a2 2 0 0 1 2-2h11.5"/>',
+    bolt:'<path d="M13.5 2.5 5 13.5h5.5l-1 8L18 10h-5.5l1-7.5Z"/>',
+    target:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/>',
+    ticket:'<path d="M3.5 8.5A2 2 0 0 1 5.5 6.5h13a2 2 0 0 1 2 2 1.8 1.8 0 0 0 0 3.6 2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2 1.8 1.8 0 0 0 0-3.6Z"/><path d="M14.5 6.5v11" stroke-dasharray="1.5 2"/>',
+    trophy:'<path d="M7.5 4h9v3.5a4.5 4.5 0 0 1-9 0V4Z"/><path d="M7.5 5.2H4.8v1.6a2.8 2.8 0 0 0 2.8 2.8M16.5 5.2h2.7v1.6a2.8 2.8 0 0 1-2.8 2.8M9.5 13.2h5M8.5 20h7M11 13.2v3M13 13.2v3"/>',
+    trash:'<path d="M4.5 7h15M9 7V4.8h6V7M6.5 7l1 12.5h9L17.5 7"/>',
+    plus:'<path d="M12 5.5v13M5.5 12h13"/>',
+    spark:'<path d="M12 3.5 13.6 9l5.4 1.6L13.6 12 12 17.5 10.4 12 5 10.6 10.4 9 12 3.5Z"/>',
+    brain:'<path d="M9.2 4.2A2.6 2.6 0 0 0 6.6 6.8 2.8 2.8 0 0 0 5.4 12a2.8 2.8 0 0 0 1.9 3.8A2.6 2.6 0 0 0 12 17V5a2.6 2.6 0 0 0-2.8-.8Z"/><path d="M14.8 4.2A2.6 2.6 0 0 1 17.4 6.8 2.8 2.8 0 0 1 18.6 12a2.8 2.8 0 0 1-1.9 3.8A2.6 2.6 0 0 1 12 17"/>',
+    store:'<path d="M4 9 5.2 4h13.6L20 9M4 9v11h16V9M4 9h16M9 20v-6h6v6"/>',
+    check:'<path d="M4 12.5 9.5 18 20 6.5"/>',
+    chevron:'<path d="M9 5l7 7-7 7"/>'
+  };
+  function ICON(name,size){ return "<svg class='ic-svg' width='"+(size||22)+"' height='"+(size||22)+"' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.85' stroke-linecap='round' stroke-linejoin='round'>"+(SVGI[name]||"")+"</svg>"; }
+
+  /* ---------- data ---------- */
+  var PUZZLES = {
+    seerah: [
+      {q:"In which city was the Prophet Muhammad ﷺ born?",o:["Madinah","Makkah","Taif","Jerusalem"],a:1,f:"The Prophet ﷺ was born in Makkah in the Year of the Elephant."},
+      {q:"To which city did the Hijrah (migration) take place?",o:["Makkah","Damascus","Madinah","Kufa"],a:2,f:"The Hijrah to Madinah marks the start of the Islamic calendar."},
+      {q:"How many pillars of Islam are there?",o:["Three","Five","Seven","Ten"],a:1,f:"The five pillars: Shahada, Salah, Zakah, Sawm, and Hajj."}
+    ],
+    history:[
+      {q:"Which is the first month of the Islamic (Hijri) calendar?",o:["Ramadan","Muharram","Shawwal","Rajab"],a:1,f:"Muharram is one of the four sacred months."},
+      {q:"The Islamic calendar is based on which cycle?",o:["The Sun","The Moon","The Stars","The Tides"],a:1,f:"It is a lunar calendar of 12 months."},
+      {q:"How many times a day are the obligatory prayers performed?",o:["Three","Four","Five","Six"],a:2,f:"Five daily prayers structure the Muslim day."}
+    ],
+    gulf:[
+      {q:"Bahrain is historically famous for which trade?",o:["Silk","Pearls","Spices","Coffee"],a:1,f:"Bahrain was the heart of the Gulf pearl-diving trade."},
+      {q:"What is the capital of Bahrain?",o:["Muharraq","Riffa","Manama","Sitra"],a:2,f:"Manama has been the capital and main port for centuries."},
+      {q:"The name 'Bahrain' in Arabic means…",o:["Two seas","Pearl isle","Palm land","Blue water"],a:0,f:"'Al-Bahrayn' means 'the two seas'."}
+    ],
+    general:[
+      {q:"Which body of water lies to the east of Bahrain?",o:["Red Sea","Arabian Gulf","Caspian Sea","Gulf of Aden"],a:1,f:"Bahrain is an archipelago in the Arabian (Persian) Gulf."},
+      {q:"What connects Bahrain to Saudi Arabia by road?",o:["Pearl Bridge","King Fahd Causeway","Gulf Tunnel","Manama Link"],a:1,f:"The King Fahd Causeway opened in 1986."},
+      {q:"Roughly how many islands make up Bahrain?",o:["About 3","About 12","About 30+","Exactly 100"],a:2,f:"Bahrain is an archipelago of 30+ natural and artificial islands."}
+    ],
+    perfume:[
+      {q:"'Oud', prized in Gulf perfumery, comes from what?",o:["A flower","Agarwood resin","Rose petals","Sea minerals"],a:1,f:"Oud is the fragrant resin of the agarwood tree — a tenant-themed clue leading to the perfume shop."},
+      {q:"Which flower is a classic base of Arabian attar?",o:["Tulip","Rose (Taif)","Sunflower","Lavender only"],a:1,f:"Taif rose is a celebrated ingredient in Arabian perfume."}
+    ]
+  };
+  var PZ_MATCH={
+    seerah:{type:"match",q:"Match each companion to their role",pairs:[["Abu Bakr","1st Caliph"],["Bilal ibn Rabah","The first Mu'adhin"],["Khadijah","First to believe"]],f:"The Sahaba each played a defining role in early Islam."},
+    gulf:{type:"match",q:"Match the place to what it's known for",pairs:[["Manama","Capital & port"],["Muharraq","Old pearling town"],["King Fahd","Causeway to Saudi"]],f:"Bahrain's towns each carry a distinct heritage."},
+    history:{type:"match",q:"Match the term to its meaning",pairs:[["Hijri","Islamic calendar"],["Zakah","Obligatory charity"],["Sawm","Fasting"]],f:"Core Islamic terms every learner should know."}
+  };
+  var PZ_ORDER={
+    seerah:{type:"order",q:"Put these events of the Seerah in order",items:["Born in Makkah","First revelation","Public preaching","Hijrah to Madinah"],f:"The early Seerah, in sequence."},
+    history:{type:"order",q:"Order these from earliest to latest",items:["Year of the Elephant","First revelation","Hijrah","Conquest of Makkah"],f:"A timeline of foundational events."},
+    general:{type:"order",q:"Order these Bahrain milestones",items:["Ancient Dilmun","Pearl-diving era","Oil discovered 1932","Causeway opens 1986"],f:"Bahrain through the ages."}
+  };
+  function lockPool(cat){
+    var mcq=(PUZZLES[cat]||PUZZLES.general);
+    var out=[mcq[0]];
+    out.push(PZ_MATCH[cat] || mcq[1] || mcq[0]);
+    out.push(PZ_ORDER[cat] || mcq[2] || mcq[0]);
+    return out;
+  }
+  var FRIENDS=[
+    {id:"f1",name:"Maryam A.",av:"🧕",st:"online",note:"Online · Riffa"},
+    {id:"f2",name:"Yusuf R.",av:"🧑",st:"hunt",note:"On a hunt · City Centre"},
+    {id:"f3",name:"Omar T.",av:"🧔",st:"online",note:"Online · Muharraq"},
+    {id:"f4",name:"Layla M.",av:"👩",st:"off",note:"Last seen 2h ago"}
+  ];
+  var PENDING=[];
+  var EVENTS=[
+    {d:"18",m:"Jul",t:"Friday Grand Hunt",d2:"6–9pm · ~$300 mega-prize · 12 teams in"},
+    {d:"25",m:"Jul",t:"Seerah Night Special",d2:"9pm · Ramadan-style knowledge race"},
+    {d:"02",m:"Aug",t:"National Day Hunt",d2:"All day · heritage trail across Bahrain"}
+  ];
+  var CATS=[
+    {k:"seerah",label:"Quran & Seerah",icon:"🕌"},
+    {k:"history",label:"Islamic History",icon:"📜"},
+    {k:"gulf",label:"Gulf Culture",icon:"🫧"},
+    {k:"general",label:"General Knowledge",icon:"🌍"},
+    {k:"perfume",label:"Tenant-themed",icon:"🛍️"}
+  ];
+  var HOME=[50.5860,26.2235]; // Manama — player start [lng,lat]
+  var DROPS=[
+    {id:"d1",name:"City Centre — Level 2",hint:"Near the fountain court",cat:"gulf",diff:"Medium",reward:"20 BD voucher · Home Centre",short:"20 BD",icon:"🎁",lng:50.5455,lat:26.2340,district:"Seef",sp:false},
+    {id:"d2",name:"Adliya Café Strip",hint:"Coffee-scented clue",cat:"perfume",diff:"Hard",reward:"Free specialty coffee",short:"☕ Free",icon:"☕",lng:50.5935,lat:26.2115,district:"Adliya",sp:true,by:"Kaffo Roastery"},
+    {id:"d3",name:"Bab al-Bahrain Souq",hint:"Where the old gate stands",cat:"history",diff:"Medium",reward:"Museum pass ×2",short:"×2 pass",icon:"🏛️",lng:50.5740,lat:26.2352,district:"Manama Souq",sp:false},
+    {id:"d4",name:"Bahrain Bay — Waterfront",hint:"Sunset boardwalk",cat:"seerah",diff:"Easy",reward:"50 BD mega voucher",short:"50 BD",icon:"💎",lng:50.5988,lat:26.2430,district:"Bahrain Bay",sp:false},
+    {id:"d5",name:"Muharraq Pearling Path",hint:"Follow the pearl divers",cat:"gulf",diff:"Hard",reward:"Heritage tour ×2",short:"Tour",icon:"🫧",lng:50.6115,lat:26.2570,district:"Muharraq",sp:false}
+  ];
+  var TRAILS=[
+    {id:"t1",name:"The Seerah Trail",icon:"🕌",cat:"seerah",prog:60,total:5,done:3},
+    {id:"t2",name:"Pearls of the Gulf",icon:"🫧",cat:"gulf",prog:40,total:5,done:2},
+    {id:"t3",name:"Islamic History 101",icon:"📜",cat:"history",prog:20,total:5,done:1}
+  ];
+  var QUEUE=[
+    {q:"Which surah is known as 'the heart of the Quran'?",cat:"Seerah",note:"AI draft · awaiting review"},
+    {q:"Name the sea route the pearl dhows of Muharraq followed.",cat:"Gulf Culture",note:"AI draft · awaiting review"}
+  ];
+  var VOUCHERS=[
+    {id:"v1",icon:"☕",name:"Free specialty coffee",by:"Kaffo Roastery",cost:150},
+    {id:"v2",icon:"🍔",name:"Meal combo",by:"City Centre",cost:250},
+    {id:"v3",icon:"🎟️",name:"10 BD shopping voucher",by:"Seef Mall",cost:400},
+    {id:"v4",icon:"🎬",name:"Cinema ticket ×2",by:"VOX Cinemas",cost:600},
+    {id:"v5",icon:"💎",name:"50 BD mega voucher",by:"GeoQuest",cost:1200}
+  ];
+  var GUESS=[
+    {q:"🕌 Bahrain's largest mosque, holding ~7,000 worshippers?",o:["Al Fateh Grand Mosque","Al-Khamis Mosque","Al Aqsa","Blue Mosque"],a:0,f:"Al Fateh Grand Mosque is one of the world's largest."},
+    {q:"🏛️ UNESCO fort where 'the two seas' meet?",o:["Riffa Fort","Qal'at al-Bahrain","Arad Fort","Bab al-Bahrain"],a:1,f:"Qal'at al-Bahrain (Bahrain Fort) is a UNESCO World Heritage site."},
+    {q:"🌳 The 400-year-old lone tree in the desert?",o:["Tree of Life","Palm of Peace","Lone Cedar","Desert Oak"],a:0,f:"The Tree of Life (Shajarat-al-Hayat) survives with no known water source."},
+    {q:"🏎️ Home of the Gulf Air Grand Prix?",o:["Losail","Yas Marina","Bahrain International Circuit","Jeddah Corniche"],a:2,f:"The Bahrain International Circuit in Sakhir hosts F1."}
+  ];
+  /* SVG sneaker silhouettes for the Nike "guess the shoe" round */
+  function shoeSVG(fill,accent){ return "<svg width='150' height='84' viewBox='0 0 150 84' fill='none'><path d='M8 58 C10 40 20 40 30 42 C40 44 48 40 58 30 C66 22 74 26 78 34 C82 42 96 46 118 48 C136 50 144 52 144 60 L144 66 C144 70 140 72 136 72 L16 72 C10 72 6 66 8 58 Z' fill='"+fill+"' stroke='#000' stroke-width='2'/><path d='M60 33 C70 40 92 46 118 48' stroke='"+accent+"' stroke-width='6' stroke-linecap='round'/><path d='M12 66 L142 66' stroke='#fff' stroke-width='3' opacity='.55'/><circle cx='34' cy='60' r='3' fill='#0009'/><circle cx='120' cy='60' r='3' fill='#0009'/></svg>"; }
+  var MEGA={
+    name:"Friday Grand Hunt",
+    venue:{name:"City Centre Mall",sub:"Manama · Seef District · Levels 1–3",lng:50.5460,lat:26.2338},
+    need:4,
+    prize:"500 BD Mall Spree + 1,500 🫧",
+    stations:[
+      {id:"nike",name:"Nike",floor:"L1 · Fashion Wing",icon:"👟",color:"linear-gradient(145deg,#222,#000)",cat:"nike"},
+      {id:"br",name:"Baskin Robbins",floor:"L2 · Food Court",icon:"🍦",color:"linear-gradient(145deg,#ff6fa5,#c9316f)",cat:"br"},
+      {id:"sephora",name:"Sephora",floor:"L1 · Beauty Hall",icon:"💄",color:"linear-gradient(145deg,#333,#111)",cat:"sephora"},
+      {id:"apple",name:"Apple Store",floor:"L2 · Tech Wing",icon:"🍎",color:"linear-gradient(145deg,#555,#222)",cat:"apple"},
+      {id:"sbux",name:"Starbucks",floor:"L3 · Terrace",icon:"☕",color:"linear-gradient(145deg,#0f7a44,#0a5230)",cat:"sbux"}
+    ]
+  };
+  var MEGA_Q={
+    nike:[
+      {q:"<div class='shoeimg'>"+shoeSVG("#e8462b","#fff")+"</div>Which Nike line first showed a visible 'Air' cushioning window in the sole?",o:["Air Max","Cortez","Blazer","Free Run"],a:0,f:"Air Max (1987) revealed the Air unit for the first time."},
+      {q:"Complete the Nike slogan: 'Just ___'",o:["Win it","Do it","Own it","Run it"],a:1,f:"'Just Do It' launched in 1988."},
+      {q:"<div class='shoeimg'>"+shoeSVG("#eeeeee","#c00")+"</div>This 1972 retro runner is named after a US track coach — which model?",o:["Cortez","Pegasus","Dunk","Waffle"],a:0,f:"The Nike Cortez is a 1972 icon."}
+    ],
+    br:[
+      {q:"🍦 Baskin-Robbins is famous for how many flavors?",o:["21","31","41","51"],a:1,f:"'31 flavors' — one for every day of the month."},
+      {q:"Which is a classic Baskin-Robbins flavor?",o:["Pralines 'n Cream","Rocket Fuel","Blue Storm","Mango Tango"],a:0,f:"Pralines 'n Cream is a long-time favourite."}
+    ],
+    sephora:[
+      {q:"💄 Sephora was founded in which country?",o:["France","Japan","Brazil","USA"],a:0,f:"Sephora began in France in 1970."},
+      {q:"'SPF' on sunscreen stands for…",o:["Sun Protection Factor","Skin Purity Formula","Soft Powder Finish","Sheer Pigment Fix"],a:0,f:"SPF = Sun Protection Factor."}
+    ],
+    apple:[
+      {q:"🍎 Apple's breakthrough mass-market computer was the…",o:["Apple I","Lisa","Apple II","Newton"],a:2,f:"The Apple II (1977) went mainstream."},
+      {q:"Which chip family powers modern Macs?",o:["Snapdragon","Apple Silicon (M-series)","Ryzen","Exynos"],a:1,f:"Apple Silicon since 2020."}
+    ],
+    sbux:[
+      {q:"☕ A 'Tall' Starbucks drink is which size?",o:["The smallest","12oz (small on menu)","The largest","Extra large"],a:1,f:"'Tall' is 12oz — the smallest named size on the board."},
+      {q:"Starbucks was founded in which US city?",o:["New York","Seattle","Portland","Chicago"],a:1,f:"Seattle, 1971."}
+    ]
+  };
+
+  /* ---------- state ---------- */
+  var S={role:"player",tab:"map",pearls:120,streak:6,forgeCat:"seerah",published:14,lastWin:null,businessDrops:[],mapView:"local",huntFilter:"all",wallet:["💎 50 BD mega voucher","☕ Free specialty coffee"],megaDone:{}};
+
+  var screen=$("#screen"), nav=$("#nav"), overlay=$("#overlay"), ov=$("#ovContent");
+
+  /* ---- progress persistence (per-visitor, localStorage) ---- */
+  var SAVE_KEY="geoquest_progress_v1";
+  function persist(){
+    try{ localStorage.setItem(SAVE_KEY, JSON.stringify({
+      pearls:S.pearls, streak:S.streak, wallet:S.wallet, businessDrops:S.businessDrops,
+      megaDone:S.megaDone, huntFilter:S.huntFilter, published:S.published
+    })); }catch(e){}
+  }
+  function loadState(){
+    try{ var raw=localStorage.getItem(SAVE_KEY); if(!raw)return; var p=JSON.parse(raw);
+      if(typeof p.pearls==="number")S.pearls=p.pearls;
+      if(typeof p.streak==="number")S.streak=p.streak;
+      if(Array.isArray(p.wallet))S.wallet=p.wallet;
+      if(Array.isArray(p.businessDrops))S.businessDrops=p.businessDrops;
+      if(p.megaDone&&typeof p.megaDone==="object")S.megaDone=p.megaDone;
+      if(typeof p.huntFilter==="string")S.huntFilter=p.huntFilter;
+      if(typeof p.published==="number")S.published=p.published;
+    }catch(e){}
+  }
+  function resetProgress(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} location.reload(); }
+  function setStat(){ $("#pearls").textContent=S.pearls; $("#streak").textContent=S.streak; persist(); }
+
+  /* ---------- overlay helpers ---------- */
+  function openOv(html,full){ ov.innerHTML=""; var box=el("div",full?"full":"sheet"); if(!full){var c=el("button","close","✕");c.onclick=closeOv;box.appendChild(c);} box.insertAdjacentHTML("beforeend",html); ov.appendChild(box); overlay.classList.add("on"); return box; }
+  function closeOv(){ overlay.classList.remove("on"); ov.innerHTML=""; if(window._t){clearInterval(window._t);window._t=null;} }
+
+  /* ---------- the Lock (reusable puzzle) ---------- */
+  function shuffle(a){ a=a.slice(); for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;} return a; }
+  var TYPE_LABEL={mcq:"◉ Multiple choice",match:"⇄ Match the pairs",order:"↕ Put in order"};
+  function playLock(pool, meta, onWin, opts){
+    opts=opts||{};
+    var T0=opts.time||40, N=opts.count||3;
+    var qs = pool.slice(0, Math.min(N,pool.length));
+    var idx=0, correct=0, T=T0, started=Date.now();
+    var box=openOv("<div class='lock' id='lockroot'></div>", true);
+    var root=$("#lockroot",box);
+    function headHTML(q){
+      var type=q.type||"mcq";
+      return "<div class='lockhead'>"+
+        "<div class='ring'><svg width='56' height='56'><circle cx='28' cy='28' r='24' fill='none' stroke='var(--line2)' stroke-width='5'/><circle id='rp' cx='28' cy='28' r='24' fill='none' stroke='var(--gold)' stroke-width='5' stroke-linecap='round' stroke-dasharray='150.8' stroke-dashoffset='0'/></svg><div class='num' id='tnum'>"+T+"</div></div>"+
+        "<div class='meta'><div class='q'>"+meta.title+"</div><div class='sub'>"+meta.sub+" · no Googling</div></div></div>"+
+        "<div class='progress'>"+qs.map(function(_,i){return "<i class='"+(i<idx?"done":(i===idx?"now":""))+"'></i>";}).join("")+"</div>"+
+        "<span class='ptype'>"+(TYPE_LABEL[type]||TYPE_LABEL.mcq)+"</span>";
+    }
+    function advance(gotIt, fact){
+      if(gotIt) correct++;
+      if(fact){ var f=el("div","fact","<b>Did you know</b>"+fact); root.appendChild(f); }
+      setTimeout(function(){ idx++; if(idx<qs.length){render();} else {finish();} }, 1250);
+    }
+    function render(){
+      var q=qs[idx]; var type=q.type||"mcq";
+      root.innerHTML=headHTML(q);
+      if(type==="match") renderMatch(q);
+      else if(type==="order") renderOrder(q);
+      else renderMCQ(q);
+      updateRing();
+    }
+    function renderMCQ(q){
+      root.appendChild(el("div","qtext",q.q));
+      var opts=el("div","opts");
+      q.o.forEach(function(o,i){
+        var b=el("button","opt",o);
+        b.onclick=function(){
+          var all=opts.querySelectorAll(".opt"); Array.prototype.forEach.call(all,function(x){x.disabled=true;});
+          if(i===q.a){ b.classList.add("right"); advance(true,q.f); }
+          else { b.classList.add("wrong"); all[q.a].classList.add("right"); advance(false,q.f); }
+        };
+        opts.appendChild(b);
+      });
+      root.appendChild(opts);
+    }
+    function renderMatch(q){
+      root.appendChild(el("div","qtext",q.q));
+      var lefts=q.pairs.map(function(p){return p[0];});
+      var rights=shuffle(q.pairs.map(function(p){return p[1];}));
+      var wrap=el("div","matchwrap");
+      var cl=el("div","matchcol"), cr=el("div","matchcol");
+      var selL=null, matched=0, wrong=0;
+      lefts.forEach(function(t){ var b=el("button","mtile",t); b.setAttribute("data-v",t); b.onclick=function(){ if(b.classList.contains("done"))return; if(selL)selL.classList.remove("sel"); selL=b; b.classList.add("sel"); }; cl.appendChild(b); });
+      rights.forEach(function(t){ var b=el("button","mtile",t); b.setAttribute("data-v",t); b.onclick=function(){
+        if(!selL||b.classList.contains("done"))return;
+        var lv=selL.getAttribute("data-v"), want=""; q.pairs.forEach(function(p){ if(p[0]===lv)want=p[1]; });
+        if(b.getAttribute("data-v")===want){ selL.classList.remove("sel"); selL.classList.add("done"); b.classList.add("done"); selL=null; matched++; if(matched===q.pairs.length){ advance(wrong===0, q.f); } }
+        else { wrong++; var s=selL; b.classList.add("bad"); s.classList.add("bad"); setTimeout(function(){ b.classList.remove("bad"); s.classList.remove("bad","sel"); },500); selL=null; }
+      }; cr.appendChild(b); });
+      wrap.appendChild(cl); wrap.appendChild(cr); root.appendChild(wrap);
+    }
+    function renderOrder(q){
+      root.appendChild(el("div","qtext",q.q));
+      var seq=el("div","orderseq"); var slots=[];
+      q.items.forEach(function(_,i){ var s=el("div","oslot","<span class='n'>"+(i+1)+"</span><span class='ov'></span>"); slots.push(s); seq.appendChild(s); });
+      root.appendChild(seq);
+      var pool2=el("div","orderpool"); var picked=[];
+      shuffle(q.items).forEach(function(it){
+        var b=el("button","otile",it); b.onclick=function(){
+          if(b.classList.contains("used"))return; b.classList.add("used");
+          var slot=slots[picked.length]; slot.classList.add("filled"); $(".ov",slot).textContent=it; picked.push(it);
+          if(picked.length===q.items.length){
+            var ok=true;
+            picked.forEach(function(v,i){ var right=v===q.items[i]; slots[i].classList.add(right?"right":"wrong"); if(!right)ok=false; });
+            advance(ok, q.f);
+          }
+        };
+        pool2.appendChild(b);
+      });
+      root.appendChild(pool2);
+    }
+    function updateRing(){ var rp=$("#rp",root); if(rp){ rp.setAttribute("stroke-dashoffset", (150.8*(1-T/T0)).toFixed(1)); } var tn=$("#tnum",root); if(tn)tn.textContent=T; }
+    function tick(){ T--; if(T<=0){ T=0; updateRing(); finish(); return;} updateRing(); }
+    function finish(){ if(window._t){clearInterval(window._t);window._t=null;} var timeUsed=Math.round((Date.now()-started)/1000); onWin(correct, qs.length, timeUsed); }
+    render();
+    if(window._t)clearInterval(window._t);
+    window._t=setInterval(tick,1000);
+  }
+
+  function winFlow(correct,total,time,reward,topic){
+    var pearls = correct*10;
+    S.pearls+=pearls; if(reward && reward.streak){S.streak++;} setStat();
+    S.lastWin={time:time,topic:topic,correct:correct,total:total};
+    var conf=""; var cols=["var(--gold)","var(--teal)","var(--teal-d)","var(--gold-ink)"];
+    for(var i=0;i<28;i++){conf+="<i style='left:"+(Math.random()*100)+"%;background:"+cols[i%4]+";animation-duration:"+(1.6+Math.random()*1.4)+"s;animation-delay:"+(Math.random()*.5)+"s'></i>";}
+    var pass = correct>0;
+    var body="<div class='confetti'>"+(pass?conf:"")+"</div>"+
+      "<div class='win'>"+
+        "<div class='big'>"+(pass?"🎉":"⏱️")+"</div>"+
+        "<h3>"+(pass?"Lock cracked!":"Out of time")+"</h3>"+
+        "<div class='reward'>"+(pass?(reward&&reward.text?reward.text:"Reward unlocked"):"No reward this Drop")+"</div>"+
+        "<p class='lede'>"+correct+" / "+total+" correct · "+time+"s · +"+pearls+" 🫧 Pearls</p>"+
+        (pass?"<button class='btn gold' id='wcBtn'>✨ Create Win Card</button>":"")+
+        "<button class='btn ghost' id='doneBtn' style='margin-top:10px'>Back to map</button>"+
+      "</div>";
+    var box=openOv(body,true);
+    $("#doneBtn",box).onclick=function(){ closeOv(); S.tab="map"; render(); };
+    if(pass && $("#wcBtn",box)) $("#wcBtn",box).onclick=function(){ winCard(topic,time); };
+  }
+
+  function winCard(topic,time){
+    var body="<div class='full' style='padding:18px;display:flex;flex-direction:column;gap:14px;justify-content:center'>"+
+      "<div class='wincard'>"+
+        "<div class='wc-k'>GeoQuest · Win Card</div>"+
+        "<div class='wc-big'>"+topic+"</div>"+
+        "<div class='wc-time'>"+time+"s</div>"+
+        "<div class='wc-row'><span>Cracked the Lock 🔓</span><span>@ Bahrain</span></div>"+
+      "</div>"+
+      "<button class='btn' id='shareBtn'>Share to Stories</button>"+
+      "<button class='btn ghost' id='closeWc'>Done</button>"+
+      "<p class='prov-note' style='text-align:center'>Prototype: sharing is mocked.</p>"+
+    "</div>";
+    var box=openOv(body,true);
+    $("#shareBtn",box).onclick=function(){ $("#shareBtn",box).textContent="✓ Shared (demo)"; };
+    $("#closeWc",box).onclick=function(){ closeOv(); S.tab="map"; render(); };
+  }
+
+  /* ---------- drop → chest → lock ---------- */
+  function openDrop(d){
+    var body="<h2 class='sc' style='margin-right:30px'>"+d.name+"</h2>"+
+      "<p class='lede'>"+d.hint+"</p>"+
+      "<div style='display:flex;gap:6px;margin-bottom:12px'><span class='tag cat'>"+catLabel(d.cat)+"</span><span class='tag diff'>"+d.diff+"</span>"+(d.sp?"<span class='tag sp'>Sponsored · "+d.by+"</span>":"")+"</div>"+
+      "<div class='block' style='display:flex;gap:12px;align-items:center'><div style='font-size:30px'>"+d.icon+"</div><div><div style='font-weight:700'>Reward</div><div style='font-size:.84rem;color:var(--soft)'>"+d.reward+"</div></div></div>"+
+      "<button class='btn' id='dirBtn'>🧭 Get directions · "+fmtDist(d.dist)+"</button>"+
+      "<button class='btn ghost' id='hereBtn' style='margin-top:10px'>📍 I'm already here — open the Chest</button>"+
+      "<p class='prov-note' style='text-align:center'>Location is simulated in the prototype (no real GPS).</p>";
+    var box=openOv(body,false);
+    $("#dirBtn",box).onclick=function(){ openDirections(d,{kind:"hunt"}); };
+    $("#hereBtn",box).onclick=function(){ chest(d); };
+  }
+  function chest(d, onOpen){
+    var spk=""; var cols=["#ffd86b","#ff9ec7","#7ff0dd","#fff"];
+    for(var i=0;i<10;i++){ var ang=(i/10)*Math.PI*2, r=70+Math.random()*40; spk+="<span class='spk' style='--dx:"+(Math.cos(ang)*r).toFixed(0)+"px;--dy:"+(-Math.abs(Math.sin(ang)*r)-20).toFixed(0)+"px;background:"+cols[i%4]+"'></span>"; }
+    var body="<div class='full'><div class='chestscene'>"+
+      "<div class='chest3d' id='chest3d'><div class='glow'></div>"+spk+"<div class='lid'><div class='band'></div></div><div class='base'></div><div class='strap'></div></div>"+
+      "<h3 style='margin:0' id='chestTitle'>You reached the Drop</h3>"+
+      "<p class='lede' id='chestSub'>Tap the chest to open it</p>"+
+      "</div></div>";
+    var box=openOv(body,true);
+    var c=$("#chest3d",box), opened=false;
+    c.onclick=function(){
+      if(opened)return; opened=true;
+      c.classList.add("open");
+      $("#chestTitle",box).textContent="Chest opened!";
+      $("#chestSub",box).textContent="Get ready…";
+      setTimeout(function(){
+        if(onOpen){ onOpen(); return; }
+        playLock(lockPool(d.cat), {title:"The Lock — "+catLabel(d.cat), sub:d.diff}, function(c2,t,time){
+          winFlow(c2,t,time,{text:d.reward,streak:false}, catLabel(d.cat));
+        });
+      },780);
+    };
+  }
+  function catLabel(k){ for(var i=0;i<CATS.length;i++)if(CATS[i].k===k)return CATS[i].label; return "Knowledge"; }
+
+  /* ---------- PLAYER screens ---------- */
+  function fmtDist(m){ return m<1000 ? m+" m" : (m/1000).toFixed(1)+" km"; }
+  var POIS=[
+    {id:"p1",i:"☕",lng:50.5905,lat:26.2130,name:"Kaffo Roastery",kind:"Specialty café"},
+    {id:"p2",i:"🛍️",lng:50.5470,lat:26.2360,name:"Seef Mall",kind:"Shopping"},
+    {id:"p3",i:"🍽️",lng:50.5960,lat:26.2095,name:"Saffron Kitchen",kind:"Restaurant"},
+    {id:"p4",i:"🕌",lng:50.5905,lat:26.2075,name:"Al Fateh Mosque",kind:"Landmark"},
+    {id:"p5",i:"🌳",lng:50.5815,lat:26.2185,name:"Prince Park",kind:"Park"},
+    {id:"p6",i:"☕",lng:50.5760,lat:26.2290,name:"Rawa Coffee",kind:"Café"},
+    {id:"p7",i:"🏬",lng:50.5460,lat:26.2338,name:"City Centre Mall",kind:"Mall"},
+    {id:"p8",i:"⛽",lng:50.5700,lat:26.2200,name:"Bapco Station",kind:"Fuel"},
+    {id:"p9",i:"🏨",lng:50.5885,lat:26.2160,name:"Gulf Hotel",kind:"Hotel"},
+    {id:"p10",i:"🍰",lng:50.5820,lat:26.2410,name:"Sugar & Spice",kind:"Bakery"}
+  ];
+  function haversine(a,b){ var R=6371000, dLat=(b[1]-a[1])*Math.PI/180, dLng=(b[0]-a[0])*Math.PI/180, la1=a[1]*Math.PI/180, la2=b[1]*Math.PI/180; var h=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(la1)*Math.cos(la2)*Math.sin(dLng/2)*Math.sin(dLng/2); return Math.round(2*R*Math.asin(Math.sqrt(h))); }
+  DROPS.forEach(function(d){ d.dist=haversine(HOME,[d.lng,d.lat]); });
+  POIS.forEach(function(p){ p.dist=haversine(HOME,[p.lng,p.lat]); });
+  function rnd(a,b){ return a+Math.random()*(b-a); }
+
+  /* ============ REAL MAP (MapLibre GL) ============ */
+  function themeDark(){ var t=document.documentElement.getAttribute("data-theme"); if(t)return t==="dark"; return matchMedia("(prefers-color-scheme: dark)").matches; }
+  function styleURL(){ return themeDark() ? "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json" : "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"; }
+  function huntMarkerEl(d){ return el("div","gq-marker"+(d.sp?" sp":""),"<div class='mk-inner'><div class='mval'>"+(d.short||"Hunt")+"</div><div class='mpin'><b>"+d.icon+"</b></div><div class='mglow'></div></div>"); }
+  function poiMarkerEl(p){ return el("div","gq-poi",p.i); }
+  function meMarkerEl(){ return el("div","gq-me","<div class='ring'></div><div class='dot'></div>"); }
+  function makeMap(container, opts){
+    opts=opts||{};
+    var m=new maplibregl.Map({ container:container, style:styleURL(), center:opts.center||HOME, zoom:opts.zoom||13.2,
+      pitch:opts.pitch!=null?opts.pitch:50, bearing:opts.bearing!=null?opts.bearing:-17, attributionControl:{compact:true}, dragRotate:true });
+    m.on("error",function(){});
+    return m;
+  }
+  function addBaseMarkers(map, all){
+    POIS.forEach(function(p){ var mk=new maplibregl.Marker({element:poiMarkerEl(p),anchor:"center"}).setLngLat([p.lng,p.lat]).addTo(map); mk.getElement().onclick=function(){ openPoi(p); }; });
+    all.forEach(function(d){ var mk=new maplibregl.Marker({element:huntMarkerEl(d),anchor:"center"}).setLngLat([d.lng,d.lat]).addTo(map); mk.getElement().onclick=function(){ flyTo(map,d); openDrop(d); }; });
+    new maplibregl.Marker({element:meMarkerEl(),anchor:"center"}).setLngLat(HOME).addTo(map);
+  }
+  function flyTo(map,d){ if(map){ map.flyTo({center:[d.lng,d.lat],zoom:14.6,pitch:55,speed:1.2}); } }
+
+  function playerMap(){
+    var all=DROPS.concat(S.businessDrops);
+    screen.className="screen mapmode";
+    screen.innerHTML=
+      "<div id='glmap' class='glmap'></div>"+
+      "<div class='mapchip'><span class='lv'></span> Manama · "+all.length+" hunts live</div>"+
+      "<div class='mapfabs'>"+
+        "<button class='mapfab' id='fbTilt' title='Tilt view'>⛰️</button>"+
+        "<button class='mapfab' id='fbFull' title='Full screen'>⤢</button>"+
+        "<button class='mapfab pri' id='fbLoc' title='Recenter on me'>◎</button>"+
+      "</div>"+
+      "<div class='mapsheet peek' id='mapsheet'>"+
+        "<div class='sheetgrip' id='grip'></div>"+
+        "<div class='sheethead'><h3>Nearby hunts</h3><span class='cnt'>"+all.length+" live</span></div>"+
+        "<div class='seg2' id='seg'>"+
+          "<button data-f='all' aria-pressed='"+(S.huntFilter==="all")+"'>All</button>"+
+          "<button data-f='near' aria-pressed='"+(S.huntFilter==="near")+"'>Nearby</button>"+
+          "<button data-f='sp' aria-pressed='"+(S.huntFilter==="sp")+"'>Sponsored</button>"+
+        "</div>"+
+        "<div class='sheetscroll' id='sheetscroll'></div>"+
+      "</div>";
+    if(S.map){ try{S.map.remove();}catch(e){} S.map=null; }
+    var map=makeMap("glmap",{});
+    S.map=map;
+    addBaseMarkers(map, all);
+    $("#fbLoc").onclick=function(){ map.easeTo({center:HOME,zoom:13.4,pitch:50,bearing:-17,duration:600}); };
+    var tilted=true; $("#fbTilt").onclick=function(){ tilted=!tilted; map.easeTo({pitch:tilted?50:0,bearing:tilted?-17:0,duration:500}); };
+    $("#fbFull").onclick=function(){ toggleFullMap($("#fbFull")); };
+    var grip=$("#grip"), sheet=$("#mapsheet");
+    grip.onclick=function(){ sheet.classList.toggle("peek"); };
+    renderSheet(all);
+    Array.prototype.forEach.call(screen.querySelectorAll("#seg button"),function(b){ b.onclick=function(){ S.huntFilter=b.getAttribute("data-f"); Array.prototype.forEach.call(screen.querySelectorAll("#seg button"),function(x){x.setAttribute("aria-pressed",x===b);}); renderSheet(all); }; });
+  }
+  function renderSheet(all){
+    var host=$("#sheetscroll"); if(!host)return;
+    var sorted=all.slice().sort(function(a,b){return a.dist-b.dist;});
+    var nearest=sorted[0];
+    var filtered = S.huntFilter==="sp"?sorted.filter(function(d){return d.sp;}):S.huntFilter==="near"?sorted.filter(function(d){return d.dist<1600;}):sorted;
+    host.innerHTML=
+      "<div class='dailycard' id='dailyCard'>"+ICON('flame',22)+"<div class='m'><div class='t'>Daily puzzle</div><div class='d'>Keep your "+S.streak+"-day streak alive</div></div><span class='play'>Play</span></div>"+
+      "<div class='nearcard "+(nearest.sp?"sp":"")+"'>"+
+        "<div class='k'>◈ Nearest hunt · "+fmtDist(nearest.dist)+"</div>"+
+        "<div class='row'><div class='ic'>"+nearest.icon+"</div><div style='flex:1;min-width:0'><div style='font-weight:800'>"+nearest.name+"</div><div style='font-size:.78rem;color:var(--soft)'>"+nearest.district+" · "+nearest.reward+"</div></div></div>"+
+        "<button class='btn' id='startNearest'>Start this hunt →</button>"+
+      "</div>"+
+      filtered.map(function(d){return "<div class='hcard "+(d.sp?"sp":"")+"' data-id='"+d.id+"'><div class='ic'>"+d.icon+"</div><div class='m'><div class='t'>"+d.name.split("—")[0].trim()+(d.sp?" <span class='tag sp'>Sponsored</span>":"")+"</div><div class='d'>"+d.district+" · "+d.reward+"</div></div><div class='rt'><div class='dist'>"+fmtDist(d.dist)+"</div><div class='go'>GO</div></div></div>";}).join("");
+    var byId=function(id){for(var i=0;i<all.length;i++)if(all[i].id===id)return all[i];};
+    Array.prototype.forEach.call(host.querySelectorAll(".hcard[data-id]"),function(n){ n.onclick=function(){ var d=byId(n.getAttribute("data-id")); flyTo(S.map,d); openDrop(d); }; });
+    var sn=$("#startNearest"); if(sn)sn.onclick=function(){ openDirections(nearest,{kind:"hunt"}); };
+    var dc=$("#dailyCard"); if(dc)dc.onclick=function(){ launchMode("daily"); };
+  }
+  function removeRoute(map){ if(!map)return; ["route-ln","route-cas","route-dot"].forEach(function(id){ try{ if(map.getLayer(id))map.removeLayer(id); }catch(e){} }); try{ if(map.getSource("route"))map.removeSource("route"); }catch(e){} }
+  function toggleFullMap(btn){
+    var sh=$("#mapsheet"), chip=screen.querySelector(".mapchip");
+    var hidden = sh && sh.style.display==="none";
+    if(sh) sh.style.display = hidden ? "" : "none";
+    if(chip) chip.style.display = hidden ? "" : "none";
+    if(btn) btn.textContent = hidden ? "⤢" : "⤡";
+    if(S.map) setTimeout(function(){ try{S.map.resize();}catch(e){} },30);
+  }
+  function openPoi(p){
+    if(!p)return;
+    var body="<h2 class='sc' style='margin-right:30px'>"+p.i+" "+p.name+"</h2>"+
+      "<p class='lede'>"+p.kind+" · "+fmtDist(p.dist)+" away</p>"+
+      "<div class='block'><p>A real place on your map. In the live app, venues like this can sponsor a Drop or host a themed hunt to pull footfall.</p></div>"+
+      "<button class='btn' id='poiDir'>🧭 Get directions</button>"+
+      "<button class='btn ghost' id='poiClose' style='margin-top:10px'>Close</button>";
+    var box=openOv(body,false);
+    $("#poiDir",box).onclick=function(){ openDirections(p,{kind:"poi"}); };
+    $("#poiClose",box).onclick=closeOv;
+  }
+  function buildSteps(t,mode){
+    var verb=mode==="drive"?"Drive":"Walk";
+    return [ ["🧭",verb+" out toward <b>King Faisal Highway</b>"], ["↪️","Head for <b>"+(t.district||"the centre")+"</b>"], ["🛣️","Continue past the roundabout"], ["🏁","Arrive at <b>"+(t.name||"your destination")+"</b>"] ];
+  }
+  function openDirections(target, opts){
+    opts=opts||{};
+    closeOv(); // dismiss any drop/poi sheet so the Explore map is live
+    if(!(S.role==="player" && S.tab==="map" && S.map)){ S.role="player"; S.tab="map"; playerMap(); }
+    var map=S.map; if(!map) return;
+    var mode=S.dirMode||"walk";
+    var dist=target.dist||haversine(HOME,[target.lng,target.lat]);
+    var eta=Math.max(1,Math.round(dist/(mode==="drive"?400:75)));
+    var steps=buildSteps(target,mode);
+    var action=opts.kind==="hunt"?"<button class='btn' id='dirArrive'>✓ I've arrived — open the Chest</button>":"<button class='btn' id='dirArrive'>Done</button>";
+    // hide the explore chrome
+    var sheet=$("#mapsheet"), fabs=screen.querySelector(".mapfabs"), chip=screen.querySelector(".mapchip");
+    if(sheet)sheet.style.display="none"; if(fabs)fabs.style.display="none"; if(chip)chip.style.display="none";
+    var ob=$("#dirBack"); if(ob)ob.remove(); var op=$("#dirpanel"); if(op)op.remove();
+    var back=el("button","mapclose","← Back"); back.id="dirBack"; screen.appendChild(back);
+    var panel=el("div","dirsheet"); panel.id="dirpanel";
+    panel.innerHTML=
+      "<div class='dh'><div style='flex:1'><div class='prov-note' style='margin:0'>Directions to</div><div style='font-weight:800;font-size:1rem'>"+(target.name||"Destination")+"</div></div>"+
+        "<div style='text-align:right'><div class='eta'>"+eta+" min</div><div class='prov-note' style='margin:0'>"+fmtDist(dist)+"</div></div></div>"+
+      "<div class='modepick' style='margin-top:10px'><button data-mode='walk' aria-pressed='"+(mode==="walk")+"'>🚶 Walk</button><button data-mode='drive' aria-pressed='"+(mode==="drive")+"'>🚗 Drive</button></div>"+
+      "<div class='steps'>"+steps.map(function(s){return "<div class='step2'><div class='si'>"+s[0]+"</div><div class='sd'>"+s[1]+"</div></div>";}).join("")+"</div>"+
+      action+
+      "<p class='prov-note' style='text-align:center'>Route via OpenStreetMap (OSRM) · ETA simulated.</p>";
+    screen.appendChild(panel);
+    // route + dest marker on the (loaded) explore map
+    removeRoute(map);
+    if(S._destMk){ try{S._destMk.remove();}catch(e){} }
+    S._destMk=new maplibregl.Marker({element:el("div","gq-dest",target.icon||target.i||"📍"),anchor:"bottom"}).setLngLat([target.lng,target.lat]).addTo(map);
+    drawRoute(map,HOME,[target.lng,target.lat]);
+    function restore(){
+      removeRoute(map);
+      if(S._destMk){ try{S._destMk.remove();}catch(e){} S._destMk=null; }
+      var b=$("#dirBack"); if(b)b.remove(); var p=$("#dirpanel"); if(p)p.remove();
+      var sh=$("#mapsheet"); if(sh)sh.style.display=""; var fb=screen.querySelector(".mapfabs"); if(fb)fb.style.display=""; var ch=screen.querySelector(".mapchip"); if(ch)ch.style.display="";
+      map.easeTo({center:HOME,zoom:13.4,pitch:50,bearing:-17,duration:500});
+    }
+    back.onclick=restore;
+    Array.prototype.forEach.call(panel.querySelectorAll(".modepick button"),function(b){ b.onclick=function(){ S.dirMode=b.getAttribute("data-mode"); openDirections(target,opts); }; });
+    var arr=$("#dirArrive",panel); if(arr)arr.onclick=function(){ if(opts.kind==="hunt"){ removeRoute(map); if(S._destMk){try{S._destMk.remove();}catch(e){}S._destMk=null;} chest(target); } else { restore(); } };
+  }
+  function drawRoute(map,from,to){
+    function put(coords,fit){
+      var gj={type:"Feature",geometry:{type:"LineString",coordinates:coords}};
+      if(map.getSource("route")){ map.getSource("route").setData(gj); }
+      else{
+        map.addSource("route",{type:"geojson",data:gj});
+        map.addLayer({id:"route-cas",type:"line",source:"route",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#ffffff","line-width":11,"line-opacity":.7}});
+        map.addLayer({id:"route-ln",type:"line",source:"route",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#2fd4bf","line-width":6}});
+        map.addLayer({id:"route-dot",type:"circle",source:"route",paint:{"circle-radius":0}});
+      }
+      if(fit){ try{ var b=new maplibregl.LngLatBounds(); coords.forEach(function(c){b.extend(c);}); map.fitBounds(b,{padding:{top:70,bottom:270,left:55,right:55},maxZoom:16,duration:800}); }catch(e){} }
+    }
+    put([from,to],true); // instant placeholder
+    var url="https://router.project-osrm.org/route/v1/driving/"+from[0]+","+from[1]+";"+to[0]+","+to[1]+"?overview=full&geometries=geojson";
+    fetch(url).then(function(r){return r.json();}).then(function(j){ if(j&&j.routes&&j.routes[0]){ put(j.routes[0].geometry.coordinates,true); } }).catch(function(){});
+  }
+  function modeCard(k,t,s,ic,grad,badge){ return "<button class='modecard' data-mode='"+k+"' style='--mg:"+grad+"'>"+(badge?"<span class='badge'>"+badge+"</span>":"")+"<span class='mi'>"+ICON(ic,20)+"</span><span class='mt'>"+t+"</span><span class='ms'>"+s+"</span></button>"; }
+  function playerPlay(){
+    var collection="<div class='collect'>🕌<br>Makkah</div>"+
+      "<div class='collect' style='background:linear-gradient(160deg,#7a5a12,#4a3708)'>🫧<br>Pearl Diver</div>"+
+      "<div class='collect' style='background:linear-gradient(160deg,#155,#033)'>🏛️<br>Bahrain Fort</div>"+
+      "<div class='collect locked'>🔒</div>";
+    screen.innerHTML=
+      "<div class='rolehint'>Player · Play at home</div>"+
+      "<div class='streakbar'>"+ICON('flame',30)+"<div style='flex:1'><div class='big'>"+S.streak+"-day streak</div><div class='sm'>Play today's Daily to reach "+(S.streak+1)+"</div></div><button class='btn sm' data-mode='daily'>Play</button></div>"+
+      "<h3 class='sech'>"+ICON('brain',18)+"Play &amp; learn</h3>"+
+      "<div class='modegrid'>"+
+        modeCard('daily','Daily Puzzle','Keep your streak','flame','var(--grad-gold)')+
+        modeCard('quiz','Quick Quiz','Pick a topic','book','var(--grad-teal)')+
+        modeCard('lightning','Lightning','60s rapid fire','bolt','linear-gradient(145deg,#7c6cff,#3f31b8)')+
+        modeCard('guess','Guess the Place','Bahrain landmarks','target','linear-gradient(145deg,#ff9a5c,#d0631f)')+
+        modeCard('facts','World & Facts','General knowledge','spark','linear-gradient(145deg,#37b7e0,#1a6fa0)')+
+        modeCard('redeem','Rewards Store','Spend your Pearls','gift','var(--grad-gold)')+
+      "</div>"+
+      "<h3 class='sech'>"+ICON('trophy',18)+"Knowledge Trails</h3>"+
+      TRAILS.map(function(t){return "<div class='trail' data-t='"+t.id+"'><div class='ic'>"+t.icon+"</div><div class='m'><div class='t'>"+t.name+"</div><div class='bar'><i style='width:"+t.prog+"%'></i></div><div style='font-size:.72rem;color:var(--faint);margin-top:4px'>"+t.done+" / "+t.total+" solved</div></div><span style='color:var(--faint)'>"+ICON('chevron',16)+"</span></div>";}).join("")+
+      "<h3 class='sech'>"+ICON('gift',18)+"Collection</h3>"+
+      "<div class='cards'>"+collection+"</div>";
+    Array.prototype.forEach.call(screen.querySelectorAll("[data-mode]"),function(b){ b.onclick=function(){ launchMode(b.getAttribute("data-mode")); }; });
+    Array.prototype.forEach.call(screen.querySelectorAll("[data-t]"),function(n){ n.onclick=function(){ var id=n.getAttribute("data-t"),tr; for(var i=0;i<TRAILS.length;i++)if(TRAILS[i].id===id)tr=TRAILS[i]; playLock(lockPool(tr.cat),{title:tr.name,sub:"Trail puzzle"},function(c,t,time){ winFlow(c,t,time,{text:"Trail progress +1",streak:false},tr.name); }); }; });
+  }
+  function launchMode(m){
+    if(m==="daily"){ playLock(lockPool("history"),{title:"The Daily",sub:"Islamic History"},function(c,t,time){ winFlow(c,t,time,{text:"Streak extended!",streak:true},"The Daily"); }); }
+    else if(m==="quiz"){ openQuizPicker(); }
+    else if(m==="lightning"){ playLock(shuffle(PUZZLES.gulf.concat(PUZZLES.general,PUZZLES.history)),{title:"Lightning Round",sub:"Rapid fire"},function(c,t,time){ winFlow(c,t,time,{text:"Lightning cleared!",streak:false},"Lightning"); },{time:20,count:5}); }
+    else if(m==="guess"){ playLock(shuffle(GUESS),{title:"Guess the Place",sub:"Bahrain landmarks"},function(c,t,time){ winFlow(c,t,time,{text:"Explorer badge!",streak:false},"Guess the Place"); },{time:35,count:4}); }
+    else if(m==="facts"){ playLock(shuffle(PUZZLES.general.concat(PUZZLES.gulf)),{title:"World & Facts",sub:"General knowledge"},function(c,t,time){ winFlow(c,t,time,{text:"Nice knowledge!",streak:false},"World & Facts"); },{time:30,count:4}); }
+    else if(m==="redeem"){ openRedeem(); }
+  }
+  function openQuizPicker(){
+    var box=openOv("<h2 class='sc' style='margin-right:30px'>Quick Quiz</h2><p class='lede'>Pick a topic — 3 quick puzzles.</p><div class='chips'>"+CATS.map(function(c){return "<button class='chip' data-c='"+c.k+"'>"+c.icon+" "+c.label+"</button>";}).join("")+"</div>",false);
+    Array.prototype.forEach.call(box.querySelectorAll("[data-c]"),function(b){ b.onclick=function(){ var cat=b.getAttribute("data-c"); closeOv(); playLock(lockPool(cat),{title:"Quick Quiz",sub:catLabel(cat)},function(c,t,time){ winFlow(c,t,time,{text:"Quiz complete!",streak:false},catLabel(cat)); }); }; });
+  }
+  function openRedeem(){
+    var body="<h2 class='sc' style='margin-right:30px'>"+ICON('gift',20)+" Rewards Store</h2>"+
+      "<p class='lede'>Spend your <b style='color:var(--gold-ink)'>"+S.pearls+" Pearls</b> on real vouchers.</p>"+
+      "<div class='redeemlist'>"+VOUCHERS.map(function(v){var can=S.pearls>=v.cost;var got=S.wallet.indexOf(v.icon+" "+v.name)>=0;return "<div class='redeem "+(got?"done":"")+"'><div class='ic'>"+v.icon+"</div><div class='m'><div class='t'>"+v.name+"</div><div class='d'>"+v.by+"</div></div>"+(got?"<span class='code'>✓ GQ-"+v.cost+"</span>":"<button class='btn sm redeem-btn "+(can?"":"off")+"' data-v='"+v.id+"' "+(can?"":"disabled")+">"+v.cost+" 🫧</button>")+"</div>";}).join("")+"</div>"+
+      "<p class='prov-note' style='text-align:center'>Prototype: vouchers are demo codes.</p>";
+    var box=openOv(body,false);
+    Array.prototype.forEach.call(box.querySelectorAll(".redeem-btn"),function(b){ if(b.classList.contains("off"))return; b.onclick=function(){ var v,id=b.getAttribute("data-v"); for(var i=0;i<VOUCHERS.length;i++)if(VOUCHERS[i].id===id)v=VOUCHERS[i]; if(!v||S.pearls<v.cost)return; S.pearls-=v.cost; S.wallet.unshift(v.icon+" "+v.name); setStat(); openRedeem(); }; });
+  }
+  function playerDaily(){
+    screen.innerHTML=
+      "<div class='rolehint'>Player · The Daily</div>"+
+      "<h2 class='sc'>Today's free puzzle</h2>"+
+      "<p class='lede'>One puzzle a day, from anywhere. Keep your streak alive.</p>"+
+      "<div class='block' style='text-align:center'><div style='font-size:40px'>🔥</div><div style='font-size:1.6rem;font-weight:800'>"+S.streak+"-day streak</div><p>Play today to make it "+(S.streak+1)+".</p></div>"+
+      "<div class='block' style='display:flex;gap:12px;align-items:center'><div style='font-size:26px'>📜</div><div><div style='font-weight:700'>Islamic History</div><div style='font-size:.8rem;color:var(--soft)'>3 quick parts · 30 seconds</div></div></div>"+
+      "<button class='btn' id='playDaily'>Play the Daily</button>";
+    $("#playDaily").onclick=function(){
+      playLock(lockPool("history"),{title:"The Daily",sub:"Islamic History"},function(c,t,time){
+        winFlow(c,t,time,{text:"Streak extended!",streak:true},"The Daily");
+      });
+    };
+  }
+  function playerTrails(){
+    screen.innerHTML=
+      "<div class='rolehint'>Player · Knowledge Trails</div>"+
+      "<h2 class='sc'>Your Trails</h2>"+
+      "<p class='lede'>Themed mastery paths. Finish a Trail to earn its badge and unlock a harder tier.</p>"+
+      TRAILS.map(function(t){return "<div class='trail' data-t='"+t.id+"'><div class='ic'>"+t.icon+"</div><div class='m'><div class='t'>"+t.name+"</div><div class='bar'><i style='width:"+t.prog+"%'></i></div><div style='font-size:.72rem;color:var(--faint);margin-top:4px'>"+t.done+" / "+t.total+" solved</div></div><div style='font-size:20px;color:var(--faint)'>›</div></div>";}).join("")+
+      "<h3 style='margin-top:18px'>Collection</h3>"+
+      "<p class='lede'>Cards you earn as you learn — show them off.</p>"+
+      "<div class='cards'>"+
+        "<div class='collect'>🕌<br>Makkah</div>"+
+        "<div class='collect' style='background:linear-gradient(160deg,#7a5a12,#4a3708)'>🫧<br>Pearl Diver</div>"+
+        "<div class='collect' style='background:linear-gradient(160deg,#155,#033)'>🏛️<br>Bahrain Fort</div>"+
+        "<div class='collect locked'>🔒</div>"+
+      "</div>";
+    Array.prototype.forEach.call(screen.querySelectorAll("[data-t]"),function(n){
+      n.onclick=function(){ var id=n.getAttribute("data-t"); var tr; for(var i=0;i<TRAILS.length;i++)if(TRAILS[i].id===id)tr=TRAILS[i];
+        playLock(lockPool(tr.cat),{title:tr.name,sub:"Trail puzzle"},function(c,t,time){
+          winFlow(c,t,time,{text:"Trail progress +1",streak:false},tr.name);
+        });
+      };
+    });
+  }
+  function playerMe(){
+    screen.innerHTML=
+      "<div class='rolehint'>Player · Profile</div>"+
+      "<h2 class='sc'>Guest Player</h2>"+
+      "<p class='lede'>Signed in as a guest — sign-up only needed to redeem a real reward.</p>"+
+      "<div class='grid2'>"+
+        "<div class='kpi'><div class='v'>"+S.pearls+"</div><div class='l'>🫧 Pearls</div></div>"+
+        "<div class='kpi'><div class='v'>"+S.streak+"</div><div class='l'>🔥 Day streak</div></div>"+
+        "<div class='kpi'><div class='v'>7</div><div class='l'>Drops won</div></div>"+
+        "<div class='kpi'><div class='v'>3</div><div class='l'>Badges</div></div>"+
+      "</div>"+
+      "<button class='btn gold' id='redeemBtn' style='margin-top:14px'>"+ICON('gift',18)+" Redeem Pearls for vouchers</button>"+
+      "<div class='block' style='margin-top:12px'><h3>My wallet</h3>"+
+        "<div style='display:flex;flex-direction:column;gap:8px;margin-top:8px'>"+
+          (S.wallet.length?S.wallet.map(function(w){return "<div style='display:flex;justify-content:space-between;font-size:.86rem'><span>"+w+"</span><span style='color:var(--good)'>Active</span></div>";}).join(""):"<div style='font-size:.84rem;color:var(--faint)'>No vouchers yet — win Pearls and redeem them.</div>")+
+        "</div>"+
+      "</div>"+
+      "<div class='block'><h3>Community</h3><p>See friends / mosque / school boards.</p><button class='btn ghost sm' id='lbBtn' style='margin-top:10px'>View leaderboard</button></div>"+
+      "<div class='block'><h3>Your progress is saved</h3><p>Pearls, streak, vouchers and hunts are stored on this device — come back anytime.</p><button class='btn ghost sm' id='resetBtn' style='margin-top:10px;color:var(--bad)'>Reset progress</button></div>"+
+      "<p class='banner'>Team play &amp; Grand Hunts now live in the Majlis tab · daily cap: 1 reward per player per day</p>";
+    $("#lbBtn").onclick=leaderboard; $("#redeemBtn").onclick=openRedeem;
+    $("#resetBtn").onclick=function(){ if(confirm("Reset all your progress on this device?")) resetProgress(); };
+  }
+  function leaderboard(){
+    var rows=[["🥇","Aisha K.","4,820"],["🥈","You","4,510"],["🥉","Yusuf R.","4,190"],["4","Layla M.","3,870"],["5","Omar T.","3,540"]];
+    openOv("<h2 class='sc' style='margin-right:30px'>This week · Friends</h2><p class='lede'>Community boards beat global ones — you compete with people you know.</p>"+
+      rows.map(function(r){return "<div class='lb'><span class='rk'>"+r[0]+"</span><span class='nm'>"+r[1]+"</span><span class='pt'>"+r[2]+"</span></div>";}).join(""),false);
+  }
+  /* ===== MEGA / GRAND HUNT experience ===== */
+  var _megaMk=[];
+  function clearMegaMk(){ _megaMk.forEach(function(m){try{m.remove();}catch(e){}}); _megaMk=[]; }
+  function megaStationLngLat(i){ var a=(i/MEGA.stations.length)*Math.PI*2; return [MEGA.venue.lng+Math.cos(a)*0.0009, MEGA.venue.lat+Math.sin(a)*0.0007]; }
+  function enable3D(map){
+    if(!map)return;
+    try{ map.easeTo({pitch:62,zoom:17.2,bearing:-24,duration:1400}); }catch(e){}
+    try{
+      var srcs=map.getStyle().sources, sname=null; for(var k in srcs){ if(srcs[k].type==="vector"){ sname=k; break; } }
+      if(sname && !map.getLayer("gq-3d")){
+        map.addLayer({id:"gq-3d",source:sname,"source-layer":"building",type:"fill-extrusion",minzoom:15,
+          paint:{"fill-extrusion-color":["interpolate",["linear"],["zoom"],15,"#173a34",17.5,"#2c7a6f"],
+            "fill-extrusion-height":["coalesce",["get","render_height"],["get","height"],16],
+            "fill-extrusion-base":["coalesce",["get","render_min_height"],0],"fill-extrusion-opacity":0.9}});
+      }
+    }catch(e){}
+  }
+  function disable3D(map){ if(!map)return; try{ if(map.getLayer("gq-3d"))map.removeLayer("gq-3d"); }catch(e){} }
+  function grandHunt(){ startGrandHunt(); }
+  function startGrandHunt(){
+    S.megaDone={};
+    if(!(S.role==="player" && S.tab==="map" && S.map)){ S.role="player"; S.tab="map"; playerMap(); }
+    closeOv();
+    var map=S.map; if(!map)return;
+    var sheet=$("#mapsheet"), fabs=screen.querySelector(".mapfabs"), chip=screen.querySelector(".mapchip");
+    if(sheet)sheet.style.display="none"; if(fabs)fabs.style.display="none"; if(chip)chip.style.display="none";
+    map.flyTo({center:[MEGA.venue.lng,MEGA.venue.lat],zoom:15.4,pitch:40,bearing:-10,speed:1.1});
+    clearMegaMk();
+    _megaMk.push(new maplibregl.Marker({element:el("div","gq-marker sp","<div class='mk-inner'><div class='mval'>GRAND HUNT</div><div class='mpin' style='background:linear-gradient(145deg,#e0457b,#b02a8f)'><b>🏆</b></div><div class='mglow'></div></div>"),anchor:"center"}).setLngLat([MEGA.venue.lng,MEGA.venue.lat]).addTo(map));
+    var oldp=$("#megapanel"); if(oldp)oldp.remove(); var oldf=$("#megaflag"); if(oldf)oldf.remove();
+    var flag=el("div","megaflag","<span class='rd'></span> LIVE · "+MEGA.name); flag.id="megaflag"; screen.appendChild(flag);
+    var panel=el("div","megasheet"); panel.id="megapanel";
+    panel.innerHTML=
+      "<div class='megahead'><div class='logo' style='background:linear-gradient(145deg,#e0457b,#b02a8f);width:44px;height:44px;border-radius:13px;font-size:22px'>🏆</div>"+
+        "<div><div class='t'>"+MEGA.name+" is LIVE</div><div class='s'>at "+MEGA.venue.name+" · "+MEGA.venue.sub+"</div></div></div>"+
+      "<p class='lede' style='margin:12px 0'>Teams are racing inside the mall right now. Beat <b>"+MEGA.need+" of "+MEGA.stations.length+"</b> partner hunts to win <b>"+MEGA.prize+"</b>.</p>"+
+      "<button class='btn gold' id='megaArrive'>I've arrived — enter the mall</button>"+
+      "<button class='btn ghost' id='megaBack' style='margin-top:10px'>Leave event</button>";
+    screen.appendChild(panel);
+    $("#megaArrive").onclick=megaArrive;
+    $("#megaBack").onclick=megaExit;
+  }
+  function showStations(){
+    var map=S.map; if(!map)return;
+    clearMegaMk();
+    MEGA.stations.forEach(function(st,i){ var ll=megaStationLngLat(i); st._ll=ll;
+      var e=el("div","gq-marker"+(S.megaDone[st.id]?" done":""),"<div class='mk-inner'><div class='mval'>"+st.name+"</div><div class='mpin' style='background:"+st.color+"'><b>"+st.icon+"</b></div><div class='mglow'></div></div>");
+      if(!S.megaDone[st.id]) e.onclick=(function(s){return function(){ openStation(s); };})(st);
+      _megaMk.push(new maplibregl.Marker({element:e,anchor:"center"}).setLngLat(ll).addTo(map));
+    });
+    if(!$("#d3badge")){ var nb=el("div","d3badge","◭ 3D · "+MEGA.venue.name); nb.id="d3badge"; screen.appendChild(nb); }
+    megaBoard();
+  }
+  function megaArrive(){
+    var map=S.map; if(!map)return;
+    var p=$("#megapanel"); if(p)p.remove(); var f=$("#megaflag"); if(f)f.remove();
+    clearMegaMk(); enable3D(map); showStations();
+  }
+  function megaBoard(){
+    var old=$("#megapanel"); if(old)old.remove();
+    var done=Object.keys(S.megaDone).length, need=MEGA.need;
+    var panel=el("div","megasheet"); panel.id="megapanel";
+    panel.innerHTML=
+      "<div class='sheetgrip'></div>"+
+      "<div class='megahead'><div class='logo' style='background:linear-gradient(145deg,#e0457b,#b02a8f);width:40px;height:40px;border-radius:12px;font-size:20px'>🏆</div>"+
+        "<div style='flex:1'><div class='t'>"+MEGA.venue.name+" — Mega Hunt</div><div class='s'>Beat "+need+" partner stations for the mega reward</div></div>"+
+        "<button class='btn ghost sm' id='megaLeave' style='width:auto'>Exit</button></div>"+
+      "<div class='megaprog'><div class='bar'><i style='width:"+Math.min(100,done/need*100)+"%'></i></div><div class='lab'><span>"+done+" / "+need+" stations</span><span>🏆 "+MEGA.prize+"</span></div></div>"+
+      "<div class='stationscroll'>"+MEGA.stations.map(function(st){var d=!!S.megaDone[st.id];return "<div class='station "+(d?"done":"")+"' data-st='"+st.id+"'><div class='logo' style='background:"+st.color+"'>"+st.icon+"</div><div class='m'><div class='t'>"+st.name+"</div><div class='d'>"+st.floor+"</div></div><span class='go'>"+(d?"✓ Done":"Hunt →")+"</span></div>";}).join("")+"</div>";
+    screen.appendChild(panel);
+    $("#megaLeave").onclick=megaExit;
+    Array.prototype.forEach.call(panel.querySelectorAll("[data-st]"),function(n){ n.onclick=function(){ var id=n.getAttribute("data-st"),st; for(var i=0;i<MEGA.stations.length;i++)if(MEGA.stations[i].id===id)st=MEGA.stations[i]; openStation(st); }; });
+  }
+  function openStation(st){
+    if(S.megaDone[st.id])return;
+    if(S.map && st._ll){ try{S.map.flyTo({center:st._ll,zoom:18,pitch:64,speed:1.4});}catch(e){} }
+    var p=$("#megapanel"); if(p)p.style.display="none";
+    chest({cat:st.cat}, function(){
+      playLock(MEGA_Q[st.cat]||GUESS, {title:st.name+" hunt", sub:MEGA.venue.name}, function(c,t,time){
+        if(c>0){ S.megaDone[st.id]=true; }
+        S.pearls+=c*10; setStat();
+        stationResult(st, c>0, function(){
+          if(Object.keys(S.megaDone).length>=MEGA.need){ megaReward(); }
+          else { showStations(); }
+        });
+      }, {count:(st.cat==="nike"?3:2), time:35});
+    });
+  }
+  function stationResult(st, win, next){
+    var body="<div class='full'><div class='win'><div class='big'>"+(win?"🎉":"⏱️")+"</div><h3>"+(win?st.name+" cleared!":"Missed that one")+"</h3>"+
+      "<p class='lede'>"+(win?"Station complete · "+Object.keys(S.megaDone).length+" of "+MEGA.need:"Try another store")+"</p>"+
+      "<button class='btn' id='srNext'>Back to the mall</button></div></div>";
+    var box=openOv(body,true);
+    $("#srNext",box).onclick=function(){ closeOv(); next(); };
+  }
+  function megaReward(){
+    S.pearls+=1500; S.wallet.unshift("🏆 500 BD Mall Spree"); setStat();
+    var conf="",cols=["#e0457b","#c9962a","#7ff0dd","#fff"];
+    for(var i=0;i<42;i++){conf+="<i style='left:"+(Math.random()*100)+"%;background:"+cols[i%4]+";animation-duration:"+(1.8+Math.random()*1.6)+"s;animation-delay:"+(Math.random()*.6)+"s'></i>";}
+    var box=openOv("<div class='full'><div class='confetti'>"+conf+"</div><div class='megareward'>"+
+      "<div class='crown'>👑</div><h3 style='margin:0;font-size:1.6rem'>MEGA REWARD!</h3>"+
+      "<p class='lede'>You beat "+MEGA.need+" partner hunts at "+MEGA.venue.name+".</p>"+
+      "<div class='prize'>"+MEGA.prize+"</div>"+
+      "<button class='btn gold' id='mrShare'>✨ Share your win</button>"+
+      "<button class='btn ghost' id='mrDone' style='margin-top:10px'>Back to map</button>"+
+    "</div></div>",true);
+    $("#mrShare",box).onclick=function(){ winCard(MEGA.venue.name+" Mega Hunt","🏆"); };
+    $("#mrDone",box).onclick=megaExit;
+  }
+  function megaExit(){
+    closeOv(); clearMegaMk();
+    var p=$("#megapanel"); if(p)p.remove(); var f=$("#megaflag"); if(f)f.remove(); var b=$("#d3badge"); if(b)b.remove();
+    if(S.map){ disable3D(S.map); try{S.map.easeTo({center:HOME,zoom:13.4,pitch:50,bearing:-17,duration:900});}catch(e){} }
+    var sh=$("#mapsheet"); if(sh)sh.style.display=""; var fb=screen.querySelector(".mapfabs"); if(fb)fb.style.display=""; var chip=screen.querySelector(".mapchip"); if(chip)chip.style.display="";
+  }
+
+  /* ---------- MAJLIS (social hub) ---------- */
+  function playerMajlis(){
+    var online=FRIENDS.filter(function(f){return f.st!=="off";}).length;
+    screen.innerHTML=
+      "<div class='rolehint'>Player · Majlis</div>"+
+      "<div class='mj-hero'>"+
+        "<div class='nm'>Al-Manama Majlis</div>"+
+        "<div class='sub2'>Your crew · "+(FRIENDS.length+1)+" members · "+online+" online now</div>"+
+        "<div class='avrow'>"+
+          "<div class='a'>🧑<span class='on'></span></div>"+
+          FRIENDS.slice(0,3).map(function(f){return "<div class='a'>"+f.av+(f.st!=="off"?"<span class='on'></span>":"")+"</div>";}).join("")+
+          (FRIENDS.length>3?"<div class='a more'>+"+(FRIENDS.length-3)+"</div>":"")+
+        "</div>"+
+        "<div class='mj-cta'>"+
+          "<button class='btn' id='mjCall' style='background:#fff;color:#0a3f3a'>🎙️ Start group call</button>"+
+          "<button class='btn ghost' id='mjAdd' style='color:#eafcf8;border-color:rgba(255,255,255,.4)'>＋ Add friend</button>"+
+        "</div>"+
+      "</div>"+
+      "<div class='modecard' id='ghCard' style='--mg:linear-gradient(145deg,#c98a1e,#8a5a10);margin-top:14px;min-height:auto'><span class='badge'>WEEKLY</span><span class='mi'>"+ICON('trophy',20)+"</span><span class='mt'>The Grand Hunt</span><span class='ms'>Your Majlis vs another team · ~$300 mega-prize · one shared timer</span></div>"+
+      "<div class='listhead'><h3>Upcoming grand events</h3><span class='cnt'>"+EVENTS.length+"</span></div>"+
+      EVENTS.map(function(e,i){return "<div class='evt'><div class='when'><div class='d1'>"+e.d+"</div><div class='m1'>"+e.m+"</div></div><div class='m'><div class='t'>"+e.t+"</div><div class='d'>"+e.d2+"</div></div><button class='btn sm' data-evt='"+i+"' style='width:auto;flex:none'>Join</button></div>";}).join("")+
+      "<div class='listhead'><h3>Friends</h3><span class='cnt'>"+online+" online</span></div>"+
+      FRIENDS.map(function(f){return "<div class='friend'><div class='fa'>"+f.av+"<span class='on "+f.st+"'></span></div><div class='m'><div class='t'>"+f.name+"</div><div class='d'>"+f.note+"</div></div><button class='act' data-call='"+f.id+"'>🎙️ Call</button></div>";}).join("")+
+      (PENDING.length?("<p class='prov-note'>Pending requests: "+PENDING.join(", ")+"</p>"):"")+
+      "<p class='banner'>Your Majlis plays Grand Hunts together — voices live, one shared timer, from anywhere.</p>";
+    $("#mjCall").onclick=function(){ openMajlisCall("Group call"); };
+    $("#mjAdd").onclick=openAddFriend;
+    $("#ghCard").onclick=grandHunt;
+    Array.prototype.forEach.call(screen.querySelectorAll("[data-evt]"),function(b){ b.onclick=startGrandHunt; }); // Join → enter the Grand Hunt event
+    Array.prototype.forEach.call(screen.querySelectorAll("[data-call]"),function(b){ b.onclick=function(){ openMajlisCall("Call"); }; });
+  }
+  function openMajlisCall(title){
+    var members=[{n:"You",a:"🧑",sp:false},{n:"Maryam",a:"🧕",sp:true},{n:"Yusuf",a:"🧑",sp:false},{n:"Omar",a:"🧔",sp:true}];
+    var tiles=members.map(function(m,i){return "<div class='ctile"+(m.sp?" speaking":"")+"'><div class='mic'>"+(i===0?"🎙️":(m.sp?"🔊":"🔇"))+"</div><div class='cav'>"+m.a+"</div><div class='cn'>"+m.n+"</div>"+(m.sp?"<div class='ceq'><i></i><i></i><i></i><i></i></div>":"<div style='height:14px'></div>")+"</div>";}).join("");
+    var html="<div class='callwrap'>"+
+      "<div class='callbar'><span class='liveflag'><span class='rd'></span> LIVE · "+title+"</span><span class='calltimer'>04:12</span></div>"+
+      "<div class='callgrid'>"+tiles+"</div>"+
+      "<div style='text-align:center;font-size:.76rem;opacity:.7;padding:0 10px'>Grand Hunt board unlocks when everyone's ready — then you solve together on one shared timer.</div>"+
+      "<div class='callctrls'><button class='cbtn on' id='cMic'>🎙️</button><button class='cbtn' id='cCam'>📹</button><button class='cbtn end' id='cEnd'>📴</button></div>"+
+      "<p class='prov-note' style='text-align:center'>Prototype: the group call is simulated.</p>"+
+    "</div>";
+    var box=openOv(html,true);
+    $("#cEnd",box).onclick=closeOv;
+    var mic=$("#cMic",box); if(mic) mic.onclick=function(){ mic.classList.toggle("on"); mic.textContent=mic.classList.contains("on")?"🎙️":"🔇"; };
+  }
+  function openAddFriend(){
+    var body="<h2 class='sc' style='margin-right:30px'>Add a friend</h2>"+
+      "<p class='lede'>Grow your Majlis to team up for Grand Hunts.</p>"+
+      "<div class='block'><div class='prov-note' style='margin:0'>Your invite code</div><div style='display:flex;gap:8px;align-items:center;margin-top:6px'><div style='font-family:ui-monospace,monospace;font-weight:800;font-size:1.2rem;letter-spacing:.1em;flex:1'>GEOQ-4XKD</div><button class='btn sm' id='cpBtn' style='width:auto'>Copy</button></div></div>"+
+      "<div class='field'><label>Add by username</label><input id='fuser' placeholder='@username'></div>"+
+      "<button class='btn' id='fSend'>Send request</button>"+
+      "<button class='btn ghost' id='fClose' style='margin-top:10px'>Close</button>";
+    var box=openOv(body,false);
+    $("#cpBtn",box).onclick=function(){ $("#cpBtn",box).textContent="✓ Copied"; };
+    $("#fSend",box).onclick=function(){ var u=($("#fuser",box).value||"@friend").trim(); PENDING.push(u); $("#fSend",box).textContent="✓ Request sent to "+u; };
+    $("#fClose",box).onclick=function(){ closeOv(); if(S.role==="player"&&S.tab==="majlis")playerMajlis(); };
+  }
+
+  /* ---------- STUDIO (Forge) ---------- */
+  function studioForge(){
+    screen.innerHTML=
+      "<div class='rolehint'>Studio · The Forge</div>"+
+      "<h2 class='sc'>Generate a puzzle</h2>"+
+      "<p class='lede'>Pick a category or describe what you want. The Forge drafts a puzzle under Islamic + educational content rules.</p>"+
+      "<div class='chips' id='catchips'>"+CATS.map(function(c){return "<button class='chip' data-c='"+c.k+"' aria-pressed='"+(S.forgeCat===c.k)+"'>"+c.icon+" "+c.label+"</button>";}).join("")+"</div>"+
+      "<textarea id='nlreq' placeholder='…or type: a 3-part medium puzzle on the Battle of Badr'></textarea>"+
+      "<div style='display:flex;align-items:center;justify-content:space-between;margin:10px 0'><span class='prov'><span class='live'></span> Provider: Claude / Gemini</span><button class='btn sm' id='genBtn'>⚒️ Forge it</button></div>"+
+      "<div class='forgeout' id='forgeout'><p style='margin:0;color:var(--faint);font-size:.82rem'>Your generated puzzle will appear here.</p></div>"+
+      "<button class='btn ghost' id='toQueue' style='margin-top:12px;display:none'>Send to review queue →</button>"+
+      "<div class='block' style='margin-top:14px'><h3>Library</h3><p><b style='color:var(--teal-d)'>"+S.published+"</b> puzzles approved &amp; live · <b>"+QUEUE.length+"</b> awaiting review</p><button class='btn ghost sm' id='queueBtn' style='margin-top:10px'>Open review queue</button></div>"+
+      "<p class='prov-note'>Prototype: served from a local bank so demos never stall. Production calls Claude / Gemini live with structured output + fallback.</p>";
+    Array.prototype.forEach.call(screen.querySelectorAll("[data-c]"),function(b){
+      b.onclick=function(){ S.forgeCat=b.getAttribute("data-c"); studioForge(); };
+    });
+    $("#genBtn").onclick=function(){
+      var out=$("#forgeout");
+      out.innerHTML="<div class='prov' style='margin-bottom:8px'><span class='live'></span> the Forge is thinking…</div><div class='shimmer' style='width:90%'></div><div class='shimmer' style='width:70%'></div><div class='shimmer' style='width:80%'></div>";
+      $("#toQueue").style.display="none";
+      setTimeout(function(){
+        var pool=PUZZLES[S.forgeCat]||PUZZLES.general; var p=pool[Math.floor(Math.random()*pool.length)];
+        out.innerHTML="<div class='prov' style='margin-bottom:8px'><span class='live'></span> Draft ready · "+catLabel(S.forgeCat)+"</div>"+
+          "<div style='font-weight:700;margin-bottom:8px'>"+p.q+"</div>"+
+          p.o.map(function(o,i){return "<div style='padding:8px 10px;border:1px solid var(--line);border-radius:9px;margin-bottom:6px;font-size:.84rem;"+(i===p.a?"border-color:var(--good);color:var(--good);background:var(--good-soft)":"")+"'>"+o+"</div>";}).join("")+
+          "<div style='font-size:.74rem;color:var(--faint);margin-top:6px'>✓ content-rule check passed · solve-not-lookup</div>";
+        $("#toQueue").style.display="flex";
+      },1300);
+    };
+    $("#toQueue").onclick=function(){ QUEUE.unshift({q:(PUZZLES[S.forgeCat]||PUZZLES.general)[0].q,cat:catLabel(S.forgeCat),note:"Just forged · awaiting review"}); studioQueue(); };
+    $("#queueBtn").onclick=studioQueue;
+  }
+  function studioQueue(){
+    S.tab="queue";
+    screen.innerHTML=
+      "<div class='rolehint'>Studio · Review queue</div>"+
+      "<h2 class='sc'>Human review</h2>"+
+      "<p class='lede'>Nothing about religion goes live unreviewed. Approve or reject each AI draft.</p>"+
+      "<div id='qlist'>"+renderQueue()+"</div>"+
+      (QUEUE.length===0?"<div class='block' style='text-align:center'><div style='font-size:30px'>✓</div><p>Queue clear — all caught up.</p></div>":"")+
+      "<button class='btn ghost' id='backForge' style='margin-top:8px'>← Back to the Forge</button>";
+    bindQueue();
+    $("#backForge").onclick=function(){ S.tab="forge"; render(); };
+  }
+  function renderQueue(){
+    return QUEUE.map(function(q,i){return "<div class='queueitem'><div style='font-size:20px'>📝</div><div class='m'><div class='q'>"+q.q+"</div><div style='font-size:.72rem;color:var(--faint);margin-top:2px'>"+q.cat+" · "+q.note+"</div><div class='acts'><button class='mini ok' data-ok='"+i+"'>✓ Approve</button><button class='mini no' data-no='"+i+"'>✕ Reject</button></div></div></div>";}).join("");
+  }
+  function bindQueue(){
+    Array.prototype.forEach.call(screen.querySelectorAll("[data-ok]"),function(b){b.onclick=function(){ QUEUE.splice(+b.getAttribute("data-ok"),1); S.published++; studioQueue(); };});
+    Array.prototype.forEach.call(screen.querySelectorAll("[data-no]"),function(b){b.onclick=function(){ QUEUE.splice(+b.getAttribute("data-no"),1); studioQueue(); };});
+  }
+
+  /* ---------- BUSINESS ---------- */
+  function bizHome(){
+    S.quizReady=false;
+    screen.innerHTML=
+      "<div class='rolehint'>Business · Footfall</div>"+
+      "<h2 class='sc'>Kaffo Roastery</h2>"+
+      "<p class='lede'>Light up a Drop around your venue and watch verified visitors arrive.</p>"+
+      "<div class='adminbar'>"+ICON('check',16)+"GeoQuest team (us) can also upload hunts and delete any hunt.</div>"+
+      "<div class='grid2'>"+
+        "<div class='kpi'><div class='v'>218</div><div class='l'>Visits this week</div></div>"+
+        "<div class='kpi'><div class='v'>63</div><div class='l'>Redemptions</div></div>"+
+        "<div class='kpi'><div class='v'>11m</div><div class='l'>Avg dwell</div></div>"+
+        "<div class='kpi'><div class='v'>"+(1+S.businessDrops.length)+"</div><div class='l'>Live Drops</div></div>"+
+      "</div>"+
+      "<div class='block' style='margin-top:14px'><h3>Footfall — last 7 days</h3>"+
+        "<div class='chart'>"+[14,22,19,28,31,24,36].map(function(v,i){return "<div class='col'><i style='height:"+(v/36*100)+"%'></i><b>"+["M","T","W","T","F","S","S"][i]+"</b></div>";}).join("")+"</div>"+
+        "<p style='margin-top:8px'>Peak on Friday — the Forge suggests a 5pm weekend Drop.</p>"+
+      "</div>"+
+      "<div class='block'><h3>Upload a hunt</h3>"+
+        "<div class='field'><label>Venue</label><input id='bvenue' value='Kaffo Roastery — Adliya'></div>"+
+        "<div class='field'><label>Reward</label><input id='breward' placeholder='e.g. Free specialty coffee'></div>"+
+        "<div class='field'><label>Puzzle category</label><select id='bcat'>"+CATS.map(function(c){return "<option value='"+c.k+"'>"+c.label+"</option>";}).join("")+"</select></div>"+
+        "<div class='field'><label>Live window</label><select id='bwin'><option>Now → 3 hours</option><option>Weekend 5–8pm</option><option>All day</option></select></div>"+
+        "<div id='forgeBox' style='border:1px dashed var(--line2);border-radius:12px;padding:12px;margin:6px 0 10px;background:var(--card2)'><div class='prov'><span class='live'></span> the Forge (Claude / Gemini)</div><p style='margin:6px 0 0;font-size:.8rem;color:var(--soft)'>You generate this hunt's quiz — it must pass the Islamic + educational content check before it can go live.</p><button class='btn ghost sm' id='genQuiz' style='margin-top:10px;width:auto'>"+ICON('spark',15)+" Generate quiz</button></div>"+
+        "<button class='btn' id='makeDrop' disabled style='opacity:.5'>Launch hunt (generate quiz first)</button>"+
+        "<p class='prov-note'>Adds a live pin to the Player map (switch to Player to see it).</p>"+
+      "</div>"+
+      (S.businessDrops.length?("<div class='block'><h3>Your live hunts</h3>"+S.businessDrops.map(function(d){return "<div class='bizhunt'><div class='ic'>"+d.icon+"</div><div class='m'><div class='t'>"+d.name.split('—')[0].trim()+"</div><div class='d'>"+d.reward+" · "+fmtDist(d.dist)+"</div></div><button class='iconbtn' data-del='"+d.id+"'>"+ICON('trash',18)+"</button></div>";}).join("")+"</div>"):"")+
+      "<div class='block'><h3>QR check-in</h3><p>Your in-store QR turns arrival into a verified visit.</p><div style='margin:12px auto 0;width:96px;height:96px;border-radius:12px;background:repeating-conic-gradient(var(--ink) 0 25%, var(--card) 0 50%) 50%/16px 16px;border:6px solid var(--card);box-shadow:var(--shadow-sm)'></div></div>";
+    $("#genQuiz").onclick=function(){
+      var g=$("#genQuiz"); g.textContent="Generating…"; g.disabled=true;
+      setTimeout(function(){
+        var fb=$("#forgeBox"); fb.insertAdjacentHTML("beforeend","<div style='margin-top:10px;font-size:.82rem'><b style='color:var(--good)'>✓ Quiz ready</b> — 3 puzzles · content check passed · solve-not-Google</div>");
+        S.quizReady=true; var b=$("#makeDrop"); b.disabled=false; b.style.opacity="1"; b.textContent="📍 Launch hunt";
+      },1200);
+    };
+    $("#makeDrop").onclick=function(){
+      if(!S.quizReady)return;
+      var venue=$("#bvenue").value||"Sponsored venue", reward=$("#breward").value||"Sponsor reward", cat=$("#bcat").value;
+      var id="b"+(Date.parse?Math.max.apply(null,S.businessDrops.map(function(d){return +d.id.slice(1)||0;}).concat(0))+1:S.businessDrops.length+1);
+      var blng=HOME[0]+(Math.random()-0.5)*0.05, blat=HOME[1]+(Math.random()-0.5)*0.04;
+      S.businessDrops.push({id:id,name:venue,hint:"Sponsored clue",cat:cat,diff:"Medium",reward:reward,short:"Sponsor",icon:"⭐",lng:blng,lat:blat,dist:haversine(HOME,[blng,blat]),district:"Nearby",sp:true,by:venue.split("—")[0].trim()});
+      persist(); bizHome();
+    };
+    Array.prototype.forEach.call(screen.querySelectorAll("[data-del]"),function(b){ b.onclick=function(){ var id=b.getAttribute("data-del"); S.businessDrops=S.businessDrops.filter(function(d){return d.id!==id;}); persist(); bizHome(); }; });
+  }
+
+  /* ---------- nav + render ---------- */
+  var NAVS={
+    player:[["map","map","Map"],["play","play","Play"],["majlis","crew","Majlis"],["me","user","Me"]],
+    studio:[["forge","spark","Forge"],["queue","book","Review"]],
+    business:[["biz","store","Business"]]
+  };
+  function renderNav(){
+    var items=NAVS[S.role]; nav.innerHTML="";
+    items.forEach(function(it){
+      var b=el("button",null,"<span class='i'>"+ICON(it[1])+"</span>"+it[2]);
+      b.setAttribute("aria-pressed", (S.tab===it[0])||(S.role==="studio"&&S.tab==="queue"&&it[0]==="queue"));
+      b.onclick=function(){ S.tab=it[0]; render(); };
+      nav.appendChild(b);
+    });
+  }
+  function render(){
+    setStat();
+    var onMap = S.role==="player" && S.tab==="map";
+    if(!onMap && S.map){ try{S.map.remove();}catch(e){} S.map=null; }
+    screen.className="screen";
+    if(S.role==="player"){
+      if(["map","play","majlis","me"].indexOf(S.tab)<0)S.tab="map";
+      ({map:playerMap,play:playerPlay,majlis:playerMajlis,me:playerMe})[S.tab]();
+    } else if(S.role==="studio"){
+      if(S.tab==="queue")studioQueue(); else {S.tab="forge";studioForge();}
+    } else {
+      S.tab="biz"; bizHome();
+    }
+    renderNav();
+    screen.scrollTop=0;
+  }
+
+  /* role switch */
+  Array.prototype.forEach.call($("#roleswitch").querySelectorAll("button"),function(b){
+    b.onclick=function(){
+      S.role=b.getAttribute("data-role");
+      Array.prototype.forEach.call($("#roleswitch").querySelectorAll("button"),function(x){x.setAttribute("aria-pressed", x===b);});
+      S.tab = S.role==="player"?"map":(S.role==="studio"?"forge":"biz");
+      closeOv(); render();
+    };
+  });
+
+  /* theme toggle */
+  $("#themebtn").onclick=function(){
+    var cur=document.documentElement.getAttribute("data-theme");
+    var next = cur==="dark"?"light":(cur==="light"?"dark":(matchMedia("(prefers-color-scheme: dark)").matches?"light":"dark"));
+    document.documentElement.setAttribute("data-theme",next);
+    if(S.role==="player"&&S.tab==="map"){ playerMap(); } // re-init map with matching basemap
+  };
+
+  /* HUD chips: crafted icons + tap actions */
+  $("#pearlChip .ci").innerHTML=ICON('pearl',15);
+  $("#streakChip .ci").innerHTML=ICON('flame',15);
+  $("#pearlChip").onclick=function(){ if(S.role==="player") openRedeem(); };
+  $("#streakChip").onclick=function(){ if(S.role==="player"){ S.tab="play"; render(); } };
+
+  loadState();
+  render();
+})();
+</script>
+</body>
+</html>
