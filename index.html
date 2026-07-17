@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0d766b">
+<meta name="apple-mobile-web-app-title" content="GeoQuest">
 <title>GeoQuest — Interactive Prototype</title>
 <link rel="stylesheet" href="vendor/maplibre-gl.css">
 <script src="vendor/maplibre-gl.js"></script>
@@ -637,6 +642,44 @@
   .megareward .prize{background:linear-gradient(135deg,#e0457b,#c9962a);color:#fff;font-weight:800;font-size:1.15rem;padding:14px 22px;border-radius:16px;box-shadow:var(--pop)}
   .megahead .logo{display:grid;place-items:center;flex:none}
   .gq-marker.done{opacity:.55;filter:grayscale(.45)}
+
+  /* ===== settings gear + sheet ===== */
+  .topbar .lead{display:flex;align-items:center;gap:9px}
+  .gear{width:32px;height:32px;border-radius:10px;border:1px solid var(--glass-line);background:var(--card2);color:var(--ink);cursor:pointer;display:grid;place-items:center;flex:none}
+  .gear .ic-svg{width:18px;height:18px}
+  .setrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .setrow:last-child{border-bottom:none}
+  .setrow .lbl{font-weight:700;font-size:.92rem}
+  .seg3{display:flex;gap:6px;background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:4px}
+  .seg3 button{border:none;background:none;cursor:pointer;font-size:.8rem;font-weight:700;color:var(--soft);padding:7px 12px;border-radius:8px;font-family:inherit}
+  .seg3 button[aria-pressed="true"]{background:var(--card);color:var(--teal-d);box-shadow:var(--pop)}
+
+  /* ===== mobile full-screen app ===== */
+  .phone:fullscreen{width:100vw;height:100vh;max-width:none;max-height:none;border-radius:0;border:none;box-shadow:none}
+  .phone:fullscreen .notch{display:none}
+  @media (max-width:760px){
+    body{background:var(--app)}
+    .stage{grid-template-columns:1fr;padding:0;gap:0;max-width:none}
+    .intro{display:none}
+    .phonewrap{display:block}
+    .phone{width:100vw;max-width:none;height:100vh;height:100dvh;max-height:none;border-radius:0;border:none;box-shadow:none}
+    .notch{display:none}
+    .topbar{padding-top:max(14px,env(safe-area-inset-top))}
+    .nav{padding-bottom:max(8px,env(safe-area-inset-bottom))}
+  }
+
+  /* directions sheet: collapsible */
+  #dirpanel .sheetgrip{cursor:pointer}
+  #dirpanel.collapsed .steps,#dirpanel.collapsed .modepick{display:none}
+  #dirpanel.collapsed{padding-bottom:14px}
+
+  /* RTL support */
+  :root[dir="rtl"]{direction:rtl}
+  :root[dir="rtl"] .mapfabs{right:auto;left:12px}
+  :root[dir="rtl"] .mapchip,:root[dir="rtl"] .megaflag{left:auto;right:12px}
+  :root[dir="rtl"] .d3badge{right:auto;left:12px}
+  :root[dir="rtl"] .mapclose{left:auto;right:12px}
+  :root[dir="rtl"] body,:root[dir="rtl"] .modecard,:root[dir="rtl"] .hcard .m,:root[dir="rtl"] .station .m{text-align:right}
 </style>
 </head>
 <body>
@@ -659,7 +702,7 @@
     <div class="phone" id="phone">
       <div class="notch"></div>
       <div class="topbar">
-        <div class="b"><span class="mk">◈</span> GeoQuest</div>
+        <div class="lead"><button class="gear" id="gearBtn" title="Settings"></button><div class="b"><span class="mk">◈</span> GeoQuest</div></div>
         <div class="stat">
           <button class="chipbtn p" id="pearlChip"><span class="ci"></span><span id="pearls">120</span></button>
           <button class="chipbtn s" id="streakChip"><span class="ci"></span><span id="streak">6</span></button>
@@ -700,9 +743,65 @@
     brain:'<path d="M9.2 4.2A2.6 2.6 0 0 0 6.6 6.8 2.8 2.8 0 0 0 5.4 12a2.8 2.8 0 0 0 1.9 3.8A2.6 2.6 0 0 0 12 17V5a2.6 2.6 0 0 0-2.8-.8Z"/><path d="M14.8 4.2A2.6 2.6 0 0 1 17.4 6.8 2.8 2.8 0 0 1 18.6 12a2.8 2.8 0 0 1-1.9 3.8A2.6 2.6 0 0 1 12 17"/>',
     store:'<path d="M4 9 5.2 4h13.6L20 9M4 9v11h16V9M4 9h16M9 20v-6h6v6"/>',
     check:'<path d="M4 12.5 9.5 18 20 6.5"/>',
-    chevron:'<path d="M9 5l7 7-7 7"/>'
+    chevron:'<path d="M9 5l7 7-7 7"/>',
+    settings:'<circle cx="12" cy="12" r="3.2"/><path d="M12 3.5v2M12 18.5v2M4.8 7.5l1.7 1M17.5 15.5l1.7 1M4.8 16.5l1.7-1M17.5 8.5l1.7-1"/>',
+    globe:'<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.3 3.6 5.3 3.6 8.5S14.4 18.2 12 20.5C9.6 18.2 8.4 15.2 8.4 12S9.6 5.8 12 3.5Z"/>',
+    expand:'<path d="M8 3H4a1 1 0 0 0-1 1v4M16 3h4a1 1 0 0 1 1 1v4M8 21H4a1 1 0 0 1-1-1v-4M16 21h4a1 1 0 0 0 1-1v-4"/>'
   };
   function ICON(name,size){ return "<svg class='ic-svg' width='"+(size||22)+"' height='"+(size||22)+"' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.85' stroke-linecap='round' stroke-linejoin='round'>"+(SVGI[name]||"")+"</svg>"; }
+
+  /* ---- i18n (English / Arabic) ---- */
+  var LANG="en";
+  var AR={
+    "Map":"الخريطة","Play":"العب","Majlis":"المجلس","Me":"حسابي","Business":"الأعمال","Forge":"المصنع","Review":"المراجعة",
+    "Nearby hunts":"مهمات قريبة","Daily puzzle":"لغز اليوم","Start this hunt →":"ابدأ هذه المهمة ←","live":"مباشر",
+    "All":"الكل","Nearby":"قريب","Sponsored":"برعاية","Explore":"استكشف",
+    "Play at home":"العب من المنزل","Play & learn":"العب وتعلّم","Knowledge Trails":"مسارات المعرفة","Collection":"المجموعة",
+    "Daily Puzzle":"لغز اليوم","Quick Quiz":"اختبار سريع","Lightning":"برق","Guess the Place":"خمّن المكان","World & Facts":"العالم والحقائق","Rewards Store":"متجر الجوائز",
+    "Keep your streak":"حافظ على سلسلتك","Pick a topic":"اختر موضوعًا","60s rapid fire":"٦٠ ثانية سريعة","Bahrain landmarks":"معالم البحرين","General knowledge":"معلومات عامة","Spend your Pearls":"أنفق لآلئك",
+    "Get directions":"الاتجاهات","Back":"رجوع","Walk":"مشي","Drive":"قيادة","Directions to":"الاتجاهات إلى","Done":"تم","Close":"إغلاق","Play":"العب","Hunt →":"مهمة ←","Join":"انضم","Exit":"خروج",
+    "I've arrived — open the Chest":"لقد وصلت — افتح الصندوق","I'm already here — open the Chest":"أنا هنا — افتح الصندوق","You reached the Drop":"لقد وصلت إلى الكنز","Tap the chest to open it":"اضغط على الصندوق لفتحه","Chest opened!":"فُتح الصندوق!","Get ready…":"استعد…",
+    "Redeem Pearls for vouchers":"استبدل اللآلئ بقسائم","Reset progress":"إعادة تعيين التقدّم","My wallet":"محفظتي","Community":"المجتمع","View leaderboard":"لوحة المتصدرين","Your progress is saved":"تم حفظ تقدّمك","Guest Player":"لاعب ضيف",
+    "Settings":"الإعدادات","Language":"اللغة","Theme":"المظهر","Role":"الدور","Fullscreen":"ملء الشاشة","Player":"لاعب","Studio":"الاستوديو","Light":"فاتح","Dark":"داكن","Enter fullscreen":"ملء الشاشة","Exit fullscreen":"إنهاء ملء الشاشة",
+    "Nearest hunt":"أقرب مهمة","Upcoming grand events":"الفعاليات الكبرى القادمة","Friends":"الأصدقاء","Start group call":"ابدأ مكالمة جماعية","Add friend":"أضف صديقًا",
+    "Leave event":"غادر الفعالية","the Grand Hunt":"المطاردة الكبرى","Mega Hunt":"المطاردة العملاقة","MEGA REWARD!":"جائزة عملاقة!","Back to map":"العودة للخريطة","Back to the mall":"العودة للمول"
+  };
+  function t(s){ return (LANG==="ar" && AR[s]) ? AR[s] : s; }
+  function translateDom(root){
+    if(LANG!=="ar"||!root)return;
+    try{
+      var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null), n, jobs=[];
+      while(n=w.nextNode()){ var k=(n.nodeValue||"").trim(); if(k&&AR[k]) jobs.push([n,k,AR[k]]); }
+      jobs.forEach(function(j){ j[0].nodeValue=j[0].nodeValue.replace(j[1],j[2]); });
+    }catch(e){}
+  }
+  function setLang(l){ LANG=l; document.documentElement.setAttribute("dir", l==="ar"?"rtl":"ltr"); document.documentElement.setAttribute("lang", l); try{localStorage.setItem("geoquest_lang",l);}catch(e){} render(); }
+
+  /* ---- fullscreen ---- */
+  function fsEl(){ return document.getElementById("phone"); }
+  function isFs(){ return !!(document.fullscreenElement||document.webkitFullscreenElement); }
+  function toggleFs(){
+    var el=fsEl();
+    if(!isFs()){ (el.requestFullscreen||el.webkitRequestFullscreen||function(){}).call(el); }
+    else { (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document); }
+  }
+  function openSettings(){
+    var dark = (document.documentElement.getAttribute("data-theme")||(themeDark()?"dark":"light"))==="dark"?"dark":"light";
+    var fsSupported = !!(fsEl().requestFullscreen||fsEl().webkitRequestFullscreen);
+    var body="<h2 class='sc' style='margin-right:30px'>"+ICON('settings',20)+" Settings</h2>"+
+      (fsSupported?"<button class='btn' id='setFs'>"+ICON('expand',16)+" "+(isFs()?"Exit fullscreen":"Enter fullscreen")+"</button>":"")+
+      "<div class='block' style='margin-top:12px'>"+
+        "<div class='setrow'><span class='lbl'>Role</span><div class='seg3' id='setRole'><button data-r='player' aria-pressed='"+(S.role==="player")+"'>Player</button><button data-r='studio' aria-pressed='"+(S.role==="studio")+"'>Studio</button><button data-r='business' aria-pressed='"+(S.role==="business")+"'>Business</button></div></div>"+
+        "<div class='setrow'><span class='lbl'>Language</span><div class='seg3' id='setLang'><button data-l='en' aria-pressed='"+(LANG==="en")+"'>English</button><button data-l='ar' aria-pressed='"+(LANG==="ar")+"'>العربية</button></div></div>"+
+        "<div class='setrow'><span class='lbl'>Theme</span><div class='seg3' id='setTheme'><button data-th='light' aria-pressed='"+(dark==="light")+"'>Light</button><button data-th='dark' aria-pressed='"+(dark==="dark")+"'>Dark</button></div></div>"+
+      "</div>"+
+      "<p class='prov-note' style='text-align:center'>On mobile you can also tap the fullscreen button, or Add to Home Screen for a full-screen app.</p>";
+    var box=openOv(body,false);
+    var sf=$("#setFs",box); if(sf)sf.onclick=function(){ toggleFs(); closeOv(); };
+    Array.prototype.forEach.call(box.querySelectorAll("#setRole button"),function(b){ b.onclick=function(){ S.role=b.getAttribute("data-r"); S.tab=S.role==="player"?"map":(S.role==="studio"?"forge":"biz"); Array.prototype.forEach.call($("#roleswitch").querySelectorAll("button"),function(x){x.setAttribute("aria-pressed", x.getAttribute("data-role")===S.role);}); closeOv(); render(); }; });
+    Array.prototype.forEach.call(box.querySelectorAll("#setLang button"),function(b){ b.onclick=function(){ closeOv(); setLang(b.getAttribute("data-l")); }; });
+    Array.prototype.forEach.call(box.querySelectorAll("#setTheme button"),function(b){ b.onclick=function(){ document.documentElement.setAttribute("data-theme",b.getAttribute("data-th")); closeOv(); if(S.role==="player"&&S.tab==="map"){playerMap();} openSettings(); }; });
+  }
 
   /* ---------- data ---------- */
   var PUZZLES = {
@@ -864,7 +963,7 @@
   function setStat(){ $("#pearls").textContent=S.pearls; $("#streak").textContent=S.streak; persist(); }
 
   /* ---------- overlay helpers ---------- */
-  function openOv(html,full){ ov.innerHTML=""; var box=el("div",full?"full":"sheet"); if(!full){var c=el("button","close","✕");c.onclick=closeOv;box.appendChild(c);} box.insertAdjacentHTML("beforeend",html); ov.appendChild(box); overlay.classList.add("on"); return box; }
+  function openOv(html,full){ ov.innerHTML=""; var box=el("div",full?"full":"sheet"); if(!full){var c=el("button","close","✕");c.onclick=closeOv;box.appendChild(c);} box.insertAdjacentHTML("beforeend",html); ov.appendChild(box); overlay.classList.add("on"); translateDom(box); return box; }
   function closeOv(){ overlay.classList.remove("on"); ov.innerHTML=""; if(window._t){clearInterval(window._t);window._t=null;} }
 
   /* ---------- the Lock (reusable puzzle) ---------- */
@@ -1163,20 +1262,28 @@
     var back=el("button","mapclose","← Back"); back.id="dirBack"; screen.appendChild(back);
     var panel=el("div","dirsheet"); panel.id="dirpanel";
     panel.innerHTML=
+      "<div class='sheetgrip' id='dirGrip' title='Collapse / expand'></div>"+
       "<div class='dh'><div style='flex:1'><div class='prov-note' style='margin:0'>Directions to</div><div style='font-weight:800;font-size:1rem'>"+(target.name||"Destination")+"</div></div>"+
         "<div style='text-align:right'><div class='eta'>"+eta+" min</div><div class='prov-note' style='margin:0'>"+fmtDist(dist)+"</div></div></div>"+
       "<div class='modepick' style='margin-top:10px'><button data-mode='walk' aria-pressed='"+(mode==="walk")+"'>🚶 Walk</button><button data-mode='drive' aria-pressed='"+(mode==="drive")+"'>🚗 Drive</button></div>"+
       "<div class='steps'>"+steps.map(function(s){return "<div class='step2'><div class='si'>"+s[0]+"</div><div class='sd'>"+s[1]+"</div></div>";}).join("")+"</div>"+
       action+
-      "<p class='prov-note' style='text-align:center'>Route via OpenStreetMap (OSRM) · ETA simulated.</p>";
+      "<p class='prov-note' style='text-align:center'>Route via OpenStreetMap (OSRM) · 3D — zoom out for 2D · tap the bar to collapse</p>";
     screen.appendChild(panel);
+    var grip=$("#dirGrip",panel); if(grip)grip.onclick=function(){ panel.classList.toggle("collapsed"); setTimeout(function(){try{map.resize();}catch(e){}},60); };
     // route + dest marker on the (loaded) explore map
     removeRoute(map);
     if(S._destMk){ try{S._destMk.remove();}catch(e){} }
     S._destMk=new maplibregl.Marker({element:el("div","gq-dest",target.icon||target.i||"📍"),anchor:"bottom"}).setLngLat([target.lng,target.lat]).addTo(map);
     drawRoute(map,HOME,[target.lng,target.lat]);
+    // 3D-until-destination: high pitch near the route; flatten to 2D when zoomed out
+    function dirZoom(){ try{ var z=map.getZoom(), p=map.getPitch(); if(z<13.8 && p>6){ map.easeTo({pitch:0,duration:450}); } else if(z>=13.8 && p<35){ map.easeTo({pitch:58,duration:450}); } }catch(e){} }
+    if(S._dirZoom){ try{map.off("zoomend",S._dirZoom);}catch(e){} }
+    S._dirZoom=dirZoom; map.on("zoomend",dirZoom);
+    setTimeout(function(){ try{ if(map.getZoom()>=13.8) map.easeTo({pitch:58,duration:700}); }catch(e){} },1000);
+    function clearZoom(){ if(S._dirZoom){ try{map.off("zoomend",S._dirZoom);}catch(e){} S._dirZoom=null; } }
     function restore(){
-      removeRoute(map);
+      clearZoom(); removeRoute(map);
       if(S._destMk){ try{S._destMk.remove();}catch(e){} S._destMk=null; }
       var b=$("#dirBack"); if(b)b.remove(); var p=$("#dirpanel"); if(p)p.remove();
       var sh=$("#mapsheet"); if(sh)sh.style.display=""; var fb=screen.querySelector(".mapfabs"); if(fb)fb.style.display=""; var ch=screen.querySelector(".mapchip"); if(ch)ch.style.display="";
@@ -1184,7 +1291,7 @@
     }
     back.onclick=restore;
     Array.prototype.forEach.call(panel.querySelectorAll(".modepick button"),function(b){ b.onclick=function(){ S.dirMode=b.getAttribute("data-mode"); openDirections(target,opts); }; });
-    var arr=$("#dirArrive",panel); if(arr)arr.onclick=function(){ if(opts.kind==="hunt"){ removeRoute(map); if(S._destMk){try{S._destMk.remove();}catch(e){}S._destMk=null;} chest(target); } else { restore(); } };
+    var arr=$("#dirArrive",panel); if(arr)arr.onclick=function(){ if(opts.kind==="hunt"){ clearZoom(); removeRoute(map); if(S._destMk){try{S._destMk.remove();}catch(e){}S._destMk=null;} chest(target); } else { restore(); } };
   }
   function drawRoute(map,from,to){
     function put(coords,fit){
@@ -1613,6 +1720,7 @@
       S.tab="biz"; bizHome();
     }
     renderNav();
+    translateDom($("#phone"));
     screen.scrollTop=0;
   }
 
@@ -1639,6 +1747,11 @@
   $("#streakChip .ci").innerHTML=ICON('flame',15);
   $("#pearlChip").onclick=function(){ if(S.role==="player") openRedeem(); };
   $("#streakChip").onclick=function(){ if(S.role==="player"){ S.tab="play"; render(); } };
+
+  /* settings gear + language restore */
+  $("#gearBtn").innerHTML=ICON('settings',18);
+  $("#gearBtn").onclick=openSettings;
+  try{ var sl=localStorage.getItem("geoquest_lang"); if(sl==="ar"){ LANG="ar"; document.documentElement.setAttribute("dir","rtl"); document.documentElement.setAttribute("lang","ar"); } }catch(e){}
 
   loadState();
   render();
